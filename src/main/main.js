@@ -114,6 +114,8 @@ function init() {
 
   if (settings.get().realWeather) refreshRealWeather();
   if (settings.get().lockScreen || settings.get().lockScreenSaved) scheduleLockVideo(8000);
+  // Une vidéo restée comme fond (ancienne version, plantage) : retour à l'image fixe.
+  if (settings.get().lockScreenSaved) setTimeout(() => lockVideoOff(true), 6000);
   setInterval(() => settings.get().realWeather && refreshRealWeather(), 20 * 60 * 1000);
   // « Auto » change de scène toutes les 3 heures : on suit (image fixe, vidéo, menu).
   let autoKey = PAL.resolve(settings.get().wallpaper, settings.get().effect);
@@ -318,8 +320,7 @@ async function onSnapshot(layer, msg) {
     await ensureOriginals(dir);
     if (settings.get().wallpaper === 'off') return; // désactivé entre-temps
     layer.lastFile = file;
-    // Écran de verrouillage animé : le fond macOS est la vidéo de Brume, on n'y touche pas.
-    if (lockScreenOn()) return;
+    if (locked) return; // écran verrouillé : le fond est la vidéo, on la laisse jouer
     await desktopPicture.setAll({ [layer.display.id]: file });
     layer.stillKey = key;
     layer.lastFile = file;
@@ -590,7 +591,7 @@ function detectSpaceChange(list) {
   clearTimeout(spaceTimer);
   spaceTimer = setTimeout(() => {
     const map = {};
-    if (lockScreenOn()) return;
+    if (locked) return;
     for (const layer of wallLayers.values()) if (layer.lastFile) map[layer.display.id] = layer.lastFile;
     if (Object.keys(map).length) desktopPicture.setAll(map).catch((err) => log('fond par bureau :', err.message));
   }, 700);
@@ -685,18 +686,26 @@ function setupPower() {
   };
   powerMonitor.on('on-battery', set(() => (onBattery = true)));
   powerMonitor.on('on-ac', set(() => (onBattery = false)));
-  powerMonitor.on('lock-screen', set(() => (locked = true)));
+  powerMonitor.on('lock-screen', set(() => {
+    locked = true;
+    lockVideoOn();
+  }));
   powerMonitor.on('unlock-screen', () => {
     locked = false;
+    lockVideoOff();
     refresh();
     if (!lockScreenOn()) playIntro(false); // déjà jouée sur l'écran de verrouillage
   });
-  powerMonitor.on('suspend', set(() => (locked = true)));
+  powerMonitor.on('suspend', set(() => {
+    locked = true;
+    lockVideoOn();
+  }));
   // Le Mac se réveille souvent sur l'écran verrouillé : on vérifie avant de reprendre.
   powerMonitor.on('resume', () =>
     setTimeout(() => {
       if (powerMonitor.getSystemIdleState(1) !== 'locked') {
         locked = false;
+        lockVideoOff();
         refresh();
         if (!lockScreenOn()) playIntro(false); // déjà jouée sur l'écran de verrouillage
       }
@@ -787,6 +796,25 @@ function lockScreenOn() {
   return settings.get().lockScreen && !!settings.get().lockScreenSaved;
 }
 
+// L'image fixe de l'écran principal (pour tous les bureaux).
+function primaryStill() {
+  const layer = wallLayers.get(screen.getPrimaryDisplay().id) || [...wallLayers.values()][0];
+  return layer && layer.lastFile;
+}
+
+let videoShown = false;
+function lockVideoOn() {
+  if (!lockScreenOn()) return;
+  videoShown = true;
+  lockscreen.showVideo(settings.get().lockScreenSaved.assetID).catch((err) => log('vidéo de verrouillage :', err.message));
+}
+function lockVideoOff(force = false) {
+  if (!videoShown && !force) return;
+  videoShown = false;
+  const still = primaryStill();
+  if (still) lockscreen.showImage(still).catch((err) => log('retour à l’image fixe :', err.message));
+}
+
 function scheduleLockVideo(delay = 20000) {
   clearTimeout(lockTimer);
   lockTimer = setTimeout(updateLockVideo, delay);
@@ -802,11 +830,7 @@ async function updateLockVideo() {
         await lockscreen.restore(path.join(LOCK_DIR(), 'originaux'));
         settings.set({ lockScreenSaved: null });
         lockKeyDone = null;
-        log('écran de verrouillage : fond d’origine remis');
-        // Le fond d'écran redevient l'image fixe de Brume.
-        const map = {};
-        for (const layer of wallLayers.values()) if (layer.lastFile) map[layer.display.id] = layer.lastFile;
-        if (Object.keys(map).length) await desktopPicture.setAll(map);
+        log('écran de verrouillage : vidéo d’origine remise');
       }
       return;
     }

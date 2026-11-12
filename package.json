@@ -11,7 +11,8 @@
     "start": "env -u ELECTRON_RUN_AS_NODE electron .",
     "icons": "python3 tools/make-icons.py",
     "build": "electron-builder --mac dir --arm64 && node tools/adhoc-sign.js",
-    "check": "node --check src/main/main.js"
+    "check": "node --check src/main/main.js",
+    "dist": "npm run build && node tools/make-installer.js"
   },
   "devDependencies": {
     "@electron/asar": "^4.3.1",

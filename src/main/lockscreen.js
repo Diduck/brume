@@ -81,36 +81,40 @@ function jxa(script, args) {
   });
 }
 
-// Range notre vidéo à la place de l'Aerial et fait de cet Aerial le fond d'écran (donc
-// celui de l'écran de verrouillage). Les originaux sont gardés une seule fois.
+const restartAgent = () => new Promise((r) => execFile('/usr/bin/killall', ['WallpaperAgent'], () => r()));
+
+// Range notre vidéo à la place de l'Aerial téléchargé (l'original est gardé une fois).
 async function install(video, backupDir) {
   const target = targetVideo();
   if (!target) throw new Error('aucune vidéo Aerial téléchargée');
   await fs.promises.mkdir(backupDir, { recursive: true });
   const backup = path.join(backupDir, path.basename(target));
   if (!fs.existsSync(backup)) await fs.promises.copyFile(target, backup);
-  const plistBackup = path.join(backupDir, 'Index.plist');
-  if (!fs.existsSync(plistBackup)) await fs.promises.copyFile(INDEX, plistBackup);
   await fs.promises.copyFile(video, target);
-  const assetID = path.basename(target, '.mov');
-  await jxa(JXA, { plist: INDEX, assetID });
-  // Le service des fonds d'écran relit sa configuration en redémarrant (il repart seul).
-  await new Promise((r) => execFile('/usr/bin/killall', ['WallpaperAgent'], () => r()));
-  return { target, assetID };
+  return { target, assetID: path.basename(target, '.mov') };
 }
 
-// Remet la vidéo et la configuration d'origine.
+// Écran verrouillé : le fond de tous les bureaux devient la vidéo (donc l'écran de
+// connexion l'anime). Déverrouillé : retour à l'image fixe — une vidéo comme fond fait un
+// écran noir le temps de se charger à chaque changement de bureau.
+async function showVideo(assetID) {
+  await jxa(JXA, { plist: INDEX, assetID });
+  await restartAgent();
+}
+async function showImage(file) {
+  await jxa(JXA, { plist: INDEX, image: file });
+  await restartAgent();
+}
+
+// Remet la vidéo d'origine.
 async function restore(backupDir) {
   if (!fs.existsSync(backupDir)) return false;
   const dir = path.join(AERIALS, 'videos');
   for (const f of await fs.promises.readdir(backupDir)) {
     if (f.endsWith('.mov')) await fs.promises.copyFile(path.join(backupDir, f), path.join(dir, f));
   }
-  const plistBackup = path.join(backupDir, 'Index.plist');
-  if (fs.existsSync(plistBackup)) await fs.promises.copyFile(plistBackup, INDEX);
-  await new Promise((r) => execFile('/usr/bin/killall', ['WallpaperAgent'], () => r()));
   await fs.promises.rm(backupDir, { recursive: true, force: true });
   return true;
 }
 
-module.exports = { available, render, install, restore, targetVideo, AERIALS };
+module.exports = { available, render, install, restore, showVideo, showImage, targetVideo, AERIALS };

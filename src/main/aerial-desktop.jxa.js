@@ -1,8 +1,8 @@
-// Brume — règle le fond d'écran macOS sur une vidéo « Aerial » (pour l'écran de
-// verrouillage animé). Lancé par osascript -l JavaScript -e <ce script> '<json>' :
-//   { "plist": "<chemin de Index.plist>", "assetID": "<UUID de la vidéo>" }
-// Chaque entrée « Desktop » (tous les écrans, tous les bureaux) devient l'Aerial choisi ;
-// l'écran de veille (« Idle ») aussi. Écrit le fichier puis affiche « ok ».
+// Brume — règle le fond d'écran macOS de TOUS les bureaux et écrans d'un coup.
+// Lancé par osascript -l JavaScript -e <ce script> '<json>' :
+//   { "plist": "<Index.plist>", "assetID": "<UUID>" }  → la vidéo « Aerial » (écran verrouillé)
+//   { "plist": "<Index.plist>", "image": "<chemin PNG>" } → une image (le bureau normal)
+// Avec une vidéo, l'écran de veille (« Idle ») la joue aussi. Écrit le fichier, affiche « ok ».
 ObjC.import('Foundation');
 
 function run(argv) {
@@ -12,17 +12,22 @@ function run(argv) {
   const root = $.NSPropertyListSerialization.propertyListWithDataOptionsFormatError(data, $.NSPropertyListMutableContainersAndLeaves, null, null);
   if (!root || root.isNil()) throw new Error('Index.plist illisible');
 
-  // La configuration d'un Aerial : un petit plist binaire { assetID }.
-  const conf = $.NSPropertyListSerialization.dataWithPropertyListFormatOptionsError($({ assetID: args.assetID }), $.NSPropertyListBinaryFormat_v1_0, 0, null);
-  const empty = $.NSPropertyListSerialization.dataWithPropertyListFormatOptionsError($({ values: {} }), $.NSPropertyListBinaryFormat_v1_0, 0, null);
+  // La configuration d'un choix : un petit plist binaire.
+  const bplist = (o) => $.NSPropertyListSerialization.dataWithPropertyListFormatOptionsError($(o), $.NSPropertyListBinaryFormat_v1_0, 0, null);
+  const image = !!args.image;
+  const conf = image
+    ? bplist({ type: 'imageFile', url: { relative: ObjC.unwrap($.NSURL.fileURLWithPath(args.image).absoluteString) } })
+    : bplist({ assetID: args.assetID });
+  const provider = image ? 'com.apple.wallpaper.choice.image' : 'com.apple.wallpaper.choice.aerials';
+  const empty = bplist({ values: {} });
 
-  function setAerial(entry) {
+  function setChoice(entry) {
     const content = entry.objectForKey('Content');
     if (!content || content.isNil()) return;
     const choice = $.NSMutableDictionary.dictionary;
     choice.setObjectForKey(conf, 'Configuration');
     choice.setObjectForKey($.NSMutableArray.array, 'Files');
-    choice.setObjectForKey('com.apple.wallpaper.choice.aerials', 'Provider');
+    choice.setObjectForKey(provider, 'Provider');
     content.setObjectForKey($.NSMutableArray.arrayWithObject(choice), 'Choices');
     content.setObjectForKey(empty, 'EncodedOptionValues');
     entry.setObjectForKey($.NSDate.date, 'LastSet');
@@ -34,10 +39,10 @@ function run(argv) {
     for (const k of keys) {
       const v = dict.objectForKey(k);
       if (!v || v.isNil() || !v.isKindOfClass($.NSDictionary)) continue;
-      if (k === 'Desktop' || k === 'Idle') {
-        setAerial(v);
+      if (k === 'Desktop' || (k === 'Idle' && !image)) {
+        setChoice(v);
         n++;
-      } else walk(v);
+      } else if (k !== 'Idle') walk(v);
     }
   }
   walk(root);

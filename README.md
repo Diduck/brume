@@ -28,13 +28,33 @@ image *est* le fond d'écran). Elle peut aussi jouer sur l'écran de verrouillag
 
 <p align="center"><img src="docs/panneau.png" width="420" alt="Le panneau de réglages"></p>
 
-## Lancer
+## Installer
+
+**En une ligne** (dans le Terminal) :
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Diduck/brume/main/install.sh | bash
+```
+
+Le script télécharge la dernière version, l'installe dans `/Applications` et la lance.
+
+**Ou à la main** : télécharge `Brume-…-arm64.dmg` dans les
+[Releases](https://github.com/Diduck/brume/releases/latest), ouvre-le et glisse Brume dans
+Applications. Brume n'est pas signée par Apple (c'est un projet de lycée) : la première
+fois, fais **clic droit → Ouvrir → Ouvrir**. Si macOS dit que l'app est « endommagée » :
+`xattr -dr com.apple.quarantine /Applications/Brume.app`.
+
+Mac Apple Silicon (M1 et suivants), macOS 14 ou plus récent. Brume vit dans la **barre des
+menus** (le flocon).
+
+## Lancer depuis le code
 
 ```bash
 npm install
 node node_modules/electron/install.js   # si npm a bloqué le téléchargement d'Electron
 npm start                               # mode développement
 npm run build                           # crée dist/mac-arm64/Brume.app
+npm run dist                            # + le .dmg et le .zip d'installation
 node tools/test-physics.js              # 13 tests de physique, sans écran
 ```
 
