@@ -1,0 +1,50 @@
+{
+  "name": "brume",
+  "productName": "Brume",
+  "version": "1.0.0",
+  "description": "La météo vit sur ton écran : neige, pluie, sakura, lucioles… qui interagissent avec tes vraies fenêtres.",
+  "main": "src/main/main.js",
+  "author": "Valentin",
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "start": "env -u ELECTRON_RUN_AS_NODE electron .",
+    "icons": "python3 tools/make-icons.py",
+    "build": "electron-builder --mac dir --arm64 && node tools/adhoc-sign.js",
+    "check": "node --check src/main/main.js"
+  },
+  "devDependencies": {
+    "@electron/asar": "^4.3.1",
+    "electron": "^45.3.1",
+    "electron-builder": "^26.18.0"
+  },
+  "build": {
+    "appId": "fr.lycee.brume",
+    "productName": "Brume",
+    "copyright": "© 2026 Valentin",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "src/**/*",
+      "package.json"
+    ],
+    "asar": true,
+    "electronFuses": {
+      "runAsNode": false,
+      "enableNodeOptionsEnvironmentVariable": false,
+      "enableNodeCliInspectArguments": false
+    },
+    "mac": {
+      "category": "public.app-category.lifestyle",
+      "icon": "build/icon.icns",
+      "identity": null,
+      "hardenedRuntime": false,
+      "extendInfo": {
+        "LSUIElement": true,
+        "NSHumanReadableCopyright": "© 2026 Valentin"
+      }
+    }
+  }
+}

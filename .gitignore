@@ -1,0 +1,5 @@
+node_modules/
+dist/
+exercice/travail/
+.DS_Store
+*.log

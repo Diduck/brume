@@ -1,0 +1,687 @@
+/*
+ * Brume — fenêtre de Brume (accueil et réglages).
+ * Reprend les couleurs et polices d'overlay.css (chargé avant). Deux teintes guident
+ * l'œil : bleu glacier pour la MÉTÉO, ambre pour le FOND D'ÉCRAN (la scène).
+ */
+
+:root {
+  --weather: #a9c6ee;
+  --weather-soft: rgba(169, 198, 238, 0.14);
+  --scene: #f2c27e;
+  --scene-soft: rgba(242, 194, 126, 0.13);
+  --general: #b9c2d0;
+  --general-soft: rgba(185, 194, 208, 0.12);
+  --raised: rgba(255, 255, 255, 0.035);
+  --raised-hover: rgba(255, 255, 255, 0.065);
+  --gutter: 26px;
+}
+
+body.panel-page {
+  background: var(--card);
+  color: var(--ink);
+}
+
+.pw {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+button {
+  font-family: var(--sans);
+}
+
+.is-weather {
+  --tint: var(--weather);
+  --tint-soft: var(--weather-soft);
+}
+
+.is-scene {
+  --tint: var(--scene);
+  --tint-soft: var(--scene-soft);
+}
+
+.is-general {
+  --tint: var(--general);
+  --tint-soft: var(--general-soft);
+}
+
+/* ---------- En-tête : aperçu vivant, poignée de la fenêtre ---------- */
+
+.hero {
+  position: relative;
+  flex: none;
+  height: 168px;
+  overflow: hidden;
+  background: #0b1030;
+  -webkit-app-region: drag;
+  app-region: drag;
+}
+
+.hero-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  image-rendering: pixelated;
+}
+
+/* Voile en haut pour les pastilles macOS, et en bas pour la lisibilité du titre. */
+.hero::before,
+.hero::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  pointer-events: none;
+}
+
+.hero::before {
+  top: 0;
+  height: 48px;
+  background: linear-gradient(rgba(8, 10, 18, 0.4), transparent);
+}
+
+.hero::after {
+  bottom: 0;
+  height: 104px;
+  background: linear-gradient(transparent, rgba(13, 17, 26, 0.55) 45%, var(--card));
+}
+
+.hero-text {
+  position: absolute;
+  z-index: 1;
+  left: var(--gutter);
+  right: 46%;
+  bottom: 10px;
+  pointer-events: none;
+}
+
+.hero-mark {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+  font: 400 14px/1 var(--serif);
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.hero-mark .icon {
+  width: 13px;
+  height: 13px;
+}
+
+.hero-title {
+  margin: 0;
+  font: 400 27px/1.1 var(--serif);
+  letter-spacing: -0.015em;
+  color: #f7f8fb;
+  text-shadow: 0 2px 18px rgba(0, 0, 0, 0.45);
+  text-wrap: balance;
+}
+
+/* ---------- Contenu ---------- */
+
+.scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+}
+
+.content {
+  padding: 8px var(--gutter) 16px;
+}
+
+.lede {
+  margin: 0 0 18px;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--ink-soft);
+  text-wrap: pretty;
+}
+
+.block + .block {
+  margin-top: 22px;
+  padding-top: 20px;
+  border-top: 1px solid var(--line);
+}
+
+.sec-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.sec-badge {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: var(--tint-soft);
+  color: var(--tint);
+}
+
+.sec-badge .icon {
+  width: 19px;
+  height: 19px;
+}
+
+.sec-title {
+  margin: 0 0 3px;
+  font: 400 19px/1.1 var(--serif);
+  letter-spacing: -0.01em;
+  color: #f7f8fb;
+}
+
+.sec-line {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: var(--ink-faint);
+}
+
+.pw-label {
+  margin: 0 0 8px;
+  font: 600 11px/1 var(--sans);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+/* ---------- Météo : tuiles ---------- */
+
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+
+.tile {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 42px;
+  padding: 6px 10px;
+  border-radius: 11px;
+  border: 1px solid var(--line);
+  background: var(--raised);
+  color: var(--ink-soft);
+  font: 500 12.5px/1.2 var(--sans);
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s, border-color 0.2s, transform 0.25s var(--ease);
+}
+
+.tile .icon {
+  flex: none;
+  width: 18px;
+  height: 18px;
+}
+
+.tile:hover {
+  background: var(--raised-hover);
+  color: var(--ink);
+}
+
+.tile:active,
+.seg-btn:active,
+.ghost:active,
+.more-toggle:active,
+.scene:active .thumb {
+  transform: scale(0.97);
+}
+
+.tile.on {
+  background: #eef2f8;
+  border-color: #eef2f8;
+  color: #0d1119;
+}
+
+/* ---------- Fond d'écran : les scènes ---------- */
+
+.scenes {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px 8px;
+}
+
+.scene {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ink-faint);
+  text-align: left;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.thumb {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  border-radius: 10px;
+  overflow: hidden;
+  background-color: #141a28;
+  background-size: cover;
+  background-position: 50% 70%;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.09);
+  transition: box-shadow 0.2s, transform 0.3s var(--ease);
+}
+
+.thumb-off {
+  background-image: repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0 6px, transparent 6px 12px);
+  color: var(--ink-faint);
+}
+
+.thumb-off .icon {
+  width: 22px;
+  height: 22px;
+}
+
+/* « Suit la météo » : sur Auto et Ville, dont la vignette change avec le temps. */
+.follow-badge {
+  position: absolute;
+  right: 5px;
+  top: 5px;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: rgba(10, 13, 22, 0.72);
+  color: var(--scene);
+}
+
+.follow-badge .icon {
+  width: 12px;
+  height: 12px;
+}
+
+.scene-name {
+  display: block;
+  overflow: hidden;
+  font: 500 12px/1.25 var(--sans);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.scene:hover {
+  color: var(--ink);
+}
+
+.scene:hover .thumb {
+  transform: translateY(-2px);
+}
+
+.scene.on {
+  color: var(--ink);
+}
+
+.scene.on .thumb {
+  box-shadow: 0 0 0 2px var(--card), 0 0 0 4px var(--scene);
+}
+
+.scene-desc {
+  margin: 14px 0 0;
+  padding: 9px 12px;
+  border-left: 2px solid var(--scene);
+  border-radius: 0 10px 10px 0;
+  background: var(--scene-soft);
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--ink-soft);
+}
+
+.scene-desc strong {
+  font-weight: 600;
+  color: var(--ink);
+}
+
+/* ---------- « Voir plus » ---------- */
+
+.more-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  height: 36px;
+  margin-top: 20px;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: rgba(255, 255, 255, 0.02);
+  color: var(--ink-soft);
+  font: 500 12.5px/1 var(--sans);
+  cursor: pointer;
+  scroll-margin-top: 12px;
+  transition: background 0.2s, color 0.2s, transform 0.25s var(--ease);
+}
+
+.more-toggle:hover {
+  background: var(--raised-hover);
+  color: var(--ink);
+}
+
+.more-toggle .icon {
+  width: 15px;
+  height: 15px;
+  transition: transform 0.4s var(--ease);
+}
+
+.more-open .more-toggle .icon {
+  transform: rotate(180deg);
+}
+
+/* Le dépliage : la ligne de grille passe de 0 à la hauteur du contenu, en douceur.
+   La fenêtre grandit en même temps (sa hauteur suit le contenu). */
+.more {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transition: grid-template-rows 0.42s var(--ease), opacity 0.3s ease;
+}
+
+.more-open .more {
+  grid-template-rows: 1fr;
+  opacity: 1;
+}
+
+.more-inner {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.more .group {
+  padding-top: 20px;
+}
+
+/* Titre de chaque groupe déplié : petit titre à empattements, pastille de sa couleur. */
+.more .group > .pw-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  font: 400 15px/1.2 var(--serif);
+  letter-spacing: 0;
+  text-transform: none;
+  color: #f7f8fb;
+}
+
+.more .group > .pw-label::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--tint);
+}
+
+/* ---------- Météo : intensité et vent ---------- */
+
+.fields {
+  display: grid;
+  grid-template-columns: 1fr 1.3fr;
+  gap: 14px;
+  margin-bottom: 12px;
+}
+
+
+.seg {
+  display: flex;
+  padding: 3px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.seg-btn {
+  flex: 1;
+  height: 28px;
+  padding: 0 6px;
+  border: 0;
+  border-radius: 7px;
+  background: none;
+  color: var(--ink-faint);
+  font: 500 12px/1 var(--sans);
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s, transform 0.25s var(--ease);
+}
+
+.seg-btn:hover {
+  color: var(--ink);
+}
+
+.seg-btn.glyph {
+  font-size: 16px;
+}
+
+.seg-btn.on {
+  background: rgba(255, 255, 255, 0.11);
+  color: var(--ink);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+/* ---------- Interrupteurs expliqués ---------- */
+
+.switches {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.sw {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--raised);
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.sw:hover {
+  background: var(--raised-hover);
+}
+
+/* Le premier interrupteur d'une liste impaire prend toute la largeur. */
+.switches > .sw:first-child:nth-last-child(odd) {
+  grid-column: 1 / -1;
+}
+
+.sw-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.sw-label {
+  font: 600 12.5px/1.25 var(--sans);
+}
+
+.sw-line {
+  font: 400 11.5px/1.35 var(--sans);
+  color: var(--ink-faint);
+}
+
+.switch-track {
+  flex: none;
+  position: relative;
+  width: 34px;
+  height: 20px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.16);
+  transition: background 0.25s;
+}
+
+.switch-track::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+  transition: transform 0.3s var(--ease);
+}
+
+.sw.on .switch-track {
+  background: var(--on);
+}
+
+.sw.on .switch-track::after {
+  transform: translateX(14px);
+}
+
+/* ---------- Gestes ---------- */
+
+.gestures {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 12px 14px;
+  list-style: none;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px dashed rgba(255, 255, 255, 0.09);
+}
+
+.gestures li {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--ink-soft);
+}
+
+.gestures .icon {
+  flex: none;
+  width: 17px;
+  height: 17px;
+  color: var(--weather);
+}
+
+/* ---------- Fond d'écran : animation d'ouverture ---------- */
+
+.opening {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+}
+
+.opening {
+  flex-wrap: wrap;
+}
+
+.opening .sw {
+  flex: 1;
+}
+
+/* L'écran de verrouillage animé, sur sa propre ligne. */
+.opening .sw:last-child {
+  flex-basis: 100%;
+}
+
+.ghost {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 14px;
+  border: 1px solid rgba(242, 194, 126, 0.35);
+  border-radius: 12px;
+  background: var(--scene-soft);
+  color: var(--scene);
+  font: 600 12.5px/1 var(--sans);
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s, transform 0.25s var(--ease);
+}
+
+.ghost:hover {
+  background: rgba(242, 194, 126, 0.22);
+  border-color: rgba(242, 194, 126, 0.55);
+}
+
+.ghost .icon {
+  width: 14px;
+  height: 14px;
+  fill: currentColor;
+}
+
+/* ---------- Pied ---------- */
+
+.foot {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 13px var(--gutter) 15px;
+  border-top: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.hint {
+  flex: 1;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--ink-faint);
+}
+
+.hint .icon {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  margin-top: 1px;
+}
+
+.start {
+  flex: none;
+  padding: 10px 18px;
+  border: 0;
+  border-radius: 11px;
+  background: var(--ink);
+  color: #0d1119;
+  font: 600 13.5px/1 var(--sans);
+  cursor: pointer;
+  transition: transform 0.2s var(--ease), background 0.2s;
+}
+
+.start:hover {
+  background: #ffffff;
+}
+
+.start:active {
+  transform: scale(0.97);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .more,
+  .more-toggle .icon {
+    transition: none;
+  }
+  .scene:hover .thumb {
+    transform: none;
+  }
+}
