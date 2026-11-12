@@ -21,7 +21,30 @@ const DEFAULTS = Object.freeze({
   lockScreenSaved: null,   // ce que Brume a remplacé (pour tout remettre) : { video, plist }
   originalWallpapers: {},  // fond d'écran macOS d'origine, par écran, pour le remettre
   panelBounds: {},         // dernière position de la fenêtre de Brume : { x, y }
+  // Tes icônes sur le fond d'écran (écran principal) : { id, x, y, size, pixel }.
+  // x, y : centre, en fraction de l'écran (0–1) ; size : hauteur, en fraction de la
+  // hauteur de l'écran ; pixel : dessinée aux gros pixels de la scène. L'image elle-même
+  // est rangée dans le dossier utilisateur (stickers/<id>.png).
+  stickers: [],
+  place: {},               // lieu de la météo en direct choisi à la main : { city, lat, lon } ({} = automatique)
 });
+
+const MAX_STICKERS = 12;
+const num = (v, lo, hi, dflt) => (Number.isFinite(v) ? Math.min(Math.max(v, lo), hi) : dflt);
+
+// Ne garde que des icônes bien formées (la liste vient de la page des réglages).
+function cleanStickers(list) {
+  if (!Array.isArray(list)) return [];
+  const seen = new Set();
+  const out = [];
+  for (const s of list) {
+    if (!s || typeof s.id !== 'string' || !/^[a-z0-9-]{4,40}$/.test(s.id) || seen.has(s.id)) continue;
+    seen.add(s.id);
+    out.push({ id: s.id, x: num(s.x, 0, 1, 0.5), y: num(s.y, 0, 1, 0.5), size: num(s.size, 0.02, 0.8, 0.14), pixel: !!s.pixel });
+    if (out.length >= MAX_STICKERS) break;
+  }
+  return out;
+}
 
 const CITY_VARIANTS = require('../shared/palettes').VILLE_KEYS;
 
@@ -48,6 +71,7 @@ function pickKnown(obj) {
   for (const k of Object.keys(DEFAULTS)) {
     if (obj && typeof obj[k] === typeof DEFAULTS[k]) out[k] = obj[k];
   }
+  if ('stickers' in out) out.stickers = cleanStickers(out.stickers);
   return out;
 }
 
@@ -72,4 +96,4 @@ function save() {
   }
 }
 
-module.exports = { load, get, set, save, DEFAULTS };
+module.exports = { load, get, set, save, DEFAULTS, MAX_STICKERS };

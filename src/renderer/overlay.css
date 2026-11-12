@@ -74,6 +74,16 @@ body {
   transition: opacity 1.2s ease;
 }
 
+/* Tes icônes, posées sur la scène (toile à la résolution de l'écran, redessinée seulement
+   quand elles changent). */
+#stickers {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+}
+
 #ui {
   position: fixed;
   inset: 0;

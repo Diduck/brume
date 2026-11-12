@@ -1,7 +1,7 @@
 'use strict';
 // Pont minimal et sûr entre les pages (sans accès à Node) et le processus principal.
 // Utilisé par toutes les pages : météo, interface, fond d'écran, ouverture, réglages.
-const { contextBridge, ipcRenderer } = require('electron');
+const { contextBridge, ipcRenderer, webUtils } = require('electron');
 
 const listen = (channel) => (callback) => {
   const handler = (_event, data) => callback(data);
@@ -33,4 +33,19 @@ contextBridge.exposeInMainWorld('brume', {
   hidePanel: () => ipcRenderer.send('panel:hide'),
   panelHeight: (h) => ipcRenderer.send('panel:height', Number(h) || 0),
   playIntro: () => ipcRenderer.send('intro:play'),
+  // Tes icônes sur le fond d'écran : les images (data URL par id), et en ajouter une
+  // (sélecteur de fichiers, ou un fichier glissé dans la fenêtre).
+  // Météo en direct : changer de lieu (un nom de ville, ou null = position automatique).
+  setPlace: (name) => ipcRenderer.invoke('weather:place', name == null ? null : String(name)),
+  onStickers: listen('stickers'),
+  addSticker: () => ipcRenderer.invoke('sticker:add', null),
+  addStickerFile: (file) => {
+    let p = null;
+    try {
+      p = webUtils.getPathForFile(file);
+    } catch {
+      /* pas un vrai fichier */
+    }
+    return p ? ipcRenderer.invoke('sticker:add', p) : Promise.resolve(null);
+  },
 });

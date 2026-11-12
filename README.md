@@ -11,10 +11,10 @@
 
 ## En images
 
-**8 scènes en pixel art**, qui changent avec la météo (neige, pluie, orage, cerisiers,
+**9 scènes en pixel art**, qui changent avec la météo (neige, pluie, orage, cerisiers,
 automne, nuit d'été, étoiles filantes) :
 
-<p align="center"><img src="docs/scenes.jpg" width="720" alt="Les scènes : toits, drones, terrasse, ville, café, forêt, mer, chambre"></p>
+<p align="center"><img src="docs/scenes.jpg" width="720" alt="Les scènes : toits, lac d'Annecy, drones, terrasse, ville, café, forêt, mer, chambre"></p>
 
 **L'animation d'ouverture** : chaque scène peint un monde plus large que l'écran, et la
 caméra le longe jusqu'à s'arrêter pile sur ton fond d'écran (aucun raccord : la dernière
@@ -77,7 +77,7 @@ Brume vit dans la **barre des menus** (icône flocon). Raccourci pause : ⌥⌘B
   quand il ne bouge plus.
 - **Derrière les fenêtres** (par défaut) : rien ne passe devant tes applications, la barre des menus
   ou le Dock. Changer de bureau conserve la neige.
-- **Fonds d'écran animés en pixel art** (option) : Sur les toits, Drones, Terrasse, Ville, Café,
+- **Fonds d'écran animés en pixel art** (option) : Sur les toits, Lac d'Annecy (avec les feux d'artifice de la Fête du lac, la nuit), Drones, Terrasse, Ville, Café,
   Forêt, Bord de mer, Chambre — ou **Auto**, qui choisit selon la météo et change de scène au fil
   de la journée. Dans Drones, une pilote guide un drone d'inspection qui scanne le viaduc.
   Décors peints une fois avec un éclairage calculé pixel par pixel, puis des personnages et animaux
@@ -98,12 +98,23 @@ Brume vit dans la **barre des menus** (icône flocon). Raccourci pause : ⌥⌘B
 - **Easter egg** : sur la scène Drones, trace un cercle puis un trait vers le bas avec la souris,
   comme un coup de baguette… 🚂 Un train à vapeur passe sur le viaduc, suivi le jour d'une
   vieille voiture bleue volante, et la nuit de spectres encapuchonnés.
+- **Tes icônes sur le fond d'écran** : ajoute une image ou l'icône d'une app (sélecteur ou
+  glisser-déposer depuis le Finder), place-la où tu veux en la faisant glisser sur un écran
+  miniature, règle sa taille (curseur ou molette), en version nette ou « pixel art » (redessinée
+  aux gros pixels de la scène). Elle reste sous les icônes du bureau et apparaît aussi dans
+  Mission Control.
 - **Panneau** : une vraie fenêtre (déplaçable, boutons macOS), avec un aperçu vivant.
-- **Météo réelle** (option) : position approximative par IP + Open-Meteo. Quand il ne tombe rien,
+- **Météo actuelle** (en haut du panneau) : le vrai temps de ta position (approximative, par IP)
+  ou d'une ville que tu choisis, avec la température et l'heure du relevé ; Open-Meteo. Quand il ne tombe rien,
   la saison décide : pétales au printemps, feuilles en automne, lucioles les nuits douces,
   étoiles filantes les nuits claires (hémisphère sud compris).
 - **Économe** : la carte graphique s'arrête quand il n'y a rien à dessiner, pause sur batterie,
   qualité adaptative si le Mac peine.
+
+## Créer ta propre scène
+
+Tout est expliqué dans [AGENTS.md](AGENTS.md) — écrit pour qu'un agent de code (Claude Code,
+Codex, Cursor…) puisse créer une nouvelle scène à partir d'une simple photo.
 
 ## Architecture
 

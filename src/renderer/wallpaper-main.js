@@ -12,6 +12,10 @@
   const canvas = document.getElementById('sky');
   const pixelCanvas = document.getElementById('pixel');
   const pg = pixelCanvas.getContext('2d');
+  const stickerCanvas = document.getElementById('stickers');
+  const sg = stickerCanvas.getContext('2d');
+  let primary = false; // tes icônes ne vont que sur l'écran principal
+  let stickersSig = '';
   const r = new B.Renderer(canvas);
   const host = { settings: { wallpaper: 'off', effect: 'none' }, effectName: 'none' };
   const wallpaper = new B.Wallpaper(host);
@@ -26,7 +30,30 @@
     r.setRects([]);
     r.bandEnabled = false;
     pixelKey = null; // la scène pixel sera repeinte à la nouvelle taille
+    drawStickers(true);
   }
+
+  // Tes icônes : une toile à la résolution de l'écran, redessinée seulement quand elles
+  // changent (place, taille, image) — rien à recalculer à chaque image de la scène.
+  function stickerList() {
+    return primary ? host.settings.stickers || [] : [];
+  }
+  function drawStickers(force) {
+    const dpr = window.devicePixelRatio || 1;
+    const w = Math.round(window.innerWidth * dpr);
+    const h = Math.round(window.innerHeight * dpr);
+    const list = stickerList();
+    const sig = JSON.stringify(list) + w + 'x' + h;
+    if (!force && sig === stickersSig) return;
+    stickersSig = sig;
+    if (stickerCanvas.width !== w || stickerCanvas.height !== h) {
+      stickerCanvas.width = w;
+      stickerCanvas.height = h;
+    }
+    sg.clearRect(0, 0, w, h);
+    B.Stickers.render(sg, list, w, h, pixelSize().k * dpr);
+  }
+  B.Stickers.onChange(() => drawStickers(true));
 
   // Taille logique : ~240 pixels de haut, agrandis d'un facteur ENTIER (pixels nets).
   function pixelSize() {
@@ -58,6 +85,12 @@
     last = now;
     const key = P.resolve(host.settings.wallpaper, host.effectName);
     ensurePixelScene(key);
+    if (!key && host.settings.wallpaper === 'off') {
+      // Pas de scène, seulement tes icônes : rien à animer, la carte graphique se repose.
+      pixelCanvas.style.opacity = '0';
+      canvas.style.opacity = '0';
+      return;
+    }
     if (pixelScene) {
       pixelScene.update(dt, { effect: host.effectName });
       pixelScene.draw(pg);
@@ -82,9 +115,12 @@
   api.onState((st) => {
     host.settings = st.settings;
     host.effectName = st.settings.effect;
+    primary = !!(st.display && st.display.primary);
+    drawStickers(false);
     if (st.paused) running = false;
     else start();
   });
+  if (api.onStickers) api.onStickers((map) => B.Stickers.setImages(map));
   api.onPaused((paused) => (paused ? (running = false) : start()));
 
   // Agrandit une petite image en pixels nets à la taille de l'écran, puis l'encode en
@@ -95,6 +131,7 @@
     const ctx = big.getContext('2d');
     ctx.imageSmoothingEnabled = false;
     ctx.drawImage(small, 0, 0, big.width, big.height);
+    if (stickerList().length) ctx.drawImage(stickerCanvas, 0, 0, big.width, big.height); // tes icônes aussi
     const blob = await big.convertToBlob({ type: 'image/png' });
     api.snapshot({ png: await blob.arrayBuffer() });
   }

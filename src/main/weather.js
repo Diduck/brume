@@ -1,7 +1,7 @@
 'use strict';
 // Météo réelle : position approximative par IP (ipwho.is), puis conditions
 // actuelles chez Open-Meteo (gratuit, sans clé). Tout est optionnel.
-const UA = { 'User-Agent': 'Brume/1.0 (projet lycée)' };
+const UA = { 'User-Agent': 'Brume/1.0 (school project)' }; // ASCII seulement : un « é » fait rejeter la requête par certains services
 
 async function getJson(url) {
   const res = await fetch(url, { headers: UA, signal: AbortSignal.timeout(8000) });
@@ -11,23 +11,59 @@ async function getJson(url) {
 
 let cachedLocation = null;
 
+// Plusieurs services de position par IP : si l'un est en panne ou limite les appels, on
+// essaie le suivant. La dernière position trouvée sert de secours.
+const LOCATORS = [
+  ['https://ipwho.is/', (j) => j.success !== false && { lat: j.latitude, lon: j.longitude, city: j.city }],
+  ['https://ipapi.co/json/', (j) => !j.error && { lat: j.latitude, lon: j.longitude, city: j.city }],
+  ['https://get.geojs.io/v1/ip/geo.json', (j) => ({ lat: Number(j.latitude), lon: Number(j.longitude), city: j.city })],
+];
+
 async function locate() {
+  const errors = [];
+  for (const [url, read] of LOCATORS) {
+    try {
+      const loc = read(await getJson(url));
+      if (loc && Number.isFinite(loc.lat) && Number.isFinite(loc.lon)) {
+        cachedLocation = { lat: loc.lat, lon: loc.lon, city: loc.city || 'chez toi' };
+        return cachedLocation;
+      }
+      errors.push(`${url} : réponse inattendue`);
+    } catch (err) {
+      errors.push(`${url} : ${err.message}`);
+    }
+  }
   if (cachedLocation) return cachedLocation;
-  const j = await getJson('https://ipwho.is/');
-  if (!j || j.success === false) throw new Error('géolocalisation indisponible');
-  cachedLocation = { lat: j.latitude, lon: j.longitude, city: j.city || 'chez toi' };
-  return cachedLocation;
+  throw new Error(`géolocalisation indisponible (${errors.join(' ; ')})`);
 }
 
-async function current() {
-  const loc = await locate();
+// Un lieu choisi à la main (nom de ville) : coordonnées par le géocodage d'Open-Meteo.
+async function geocode(name) {
+  const q = encodeURIComponent(String(name).trim().slice(0, 80));
+  const j = await getJson(`https://geocoding-api.open-meteo.com/v1/search?name=${q}&count=1&language=fr&format=json`);
+  const r = j && j.results && j.results[0];
+  if (!r) throw new Error('lieu introuvable');
+  return { city: r.name, country: r.country || '', lat: r.latitude, lon: r.longitude };
+}
+
+// place : { city, lat, lon } choisi à la main, sinon la position approximative par IP.
+async function current(place) {
+  const loc = place && Number.isFinite(place.lat) && Number.isFinite(place.lon) ? place : await locate();
   const url =
     'https://api.open-meteo.com/v1/forecast' +
     `?latitude=${loc.lat}&longitude=${loc.lon}` +
     '&current=weather_code,is_day,temperature_2m,wind_speed_10m,wind_direction_10m' +
     '&wind_speed_unit=kmh&timezone=auto';
   const j = await getJson(url);
-  return { ...toEffect(j.current, loc.lat), city: loc.city, temperature: Math.round(j.current.temperature_2m) };
+  return {
+    ...toEffect(j.current, loc.lat),
+    city: loc.city,
+    auto: loc !== place,
+    temperature: Math.round(j.current.temperature_2m),
+    isDay: !!j.current.is_day,
+    timezone: j.timezone || null,
+    at: Date.now(),
+  };
 }
 
 // Saison selon le mois, inversée dans l'hémisphère sud (lat < 0).
@@ -75,4 +111,4 @@ function toEffect(c, lat) {
   return { effect, wind, intensity, code, season };
 }
 
-module.exports = { current, toEffect, seasonOf };
+module.exports = { current, geocode, toEffect, seasonOf };

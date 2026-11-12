@@ -1,5 +1,6 @@
 // Brume — capture d'une page dans une fenêtre cachée (aucun impact sur l'écran).
 //   env -u ELECTRON_RUN_AS_NODE npx electron tools/snap.js <overlay|ui|settings|wallpaper|intro> <sortie.png> '<réglages JSON>' [largeur] [hauteur] [délai ms, ou plusieurs : 500,3000]
+//   SNAP_STICKERS=a.png,b.png : images des icônes stk0, stk1… (avec "stickers" dans les réglages).
 //   settings : la fenêtre de Brume (640 × 900 conseillé, hauteur max) ; SNAP_HASH=more déplie « Voir plus ».
 'use strict';
 const { app, BrowserWindow } = require('electron');
@@ -39,10 +40,16 @@ app.whenReady().then(() => {
   win.loadFile(path.join(__dirname, `../src/renderer/${page}.html`), process.env.SNAP_HASH ? { hash: process.env.SNAP_HASH } : {});
   win.webContents.on('did-finish-load', () => {
     const settings = { effect: 'snow', aurora: false, wallpaper: 'off', intensity: 'normal', wind: 0, behind: true, accumulate: true, snowballs: true, stats: false, ...JSON.parse(json) };
-    win.webContents.send('state', { settings, paused: false, display: { id: 1, width: W, height: H, workTop: 25, groundY: H, primary: true } });
+    win.webContents.send('state', { settings, paused: false, display: { id: 1, width: W, height: H, workTop: 25, groundY: H, primary: true }, live: process.env.SNAP_LIVE ? JSON.parse(process.env.SNAP_LIVE) : null });
     win.webContents.send('windows', { list: [], closed: [], back: true });
     if (page === 'ui') win.webContents.send('command', { type: 'toast', text: 'Fond d’écran : Forêt — Des sapins, un lac et des lucioles.' });
     if (page === 'settings') sendThumbs(win);
+    // SNAP_STICKERS=a.png,b.png : images des icônes « stk0 », « stk1 »… (réglage stickers).
+    if (process.env.SNAP_STICKERS) {
+      const map = {};
+      process.env.SNAP_STICKERS.split(',').forEach((f, i) => (map[`stk${i}`] = `data:image/png;base64,${fs.readFileSync(f).toString('base64')}`));
+      win.webContents.send('stickers', map);
+    }
     // SNAP_MAGIC=1 : coup de baguette simulé (easter egg de la scène Drones).
     if (process.env.SNAP_MAGIC) setTimeout(() => win.webContents.send('command', { type: 'magic', path: Array.from({ length: 40 }, (_, i) => ({ x: W / 2 + 60 * Math.cos(i / 6), y: H / 3 + 60 * Math.sin(i / 6) + (i > 30 ? (i - 30) * 20 : 0) })) }), 300);
     if (page === 'intro') win.webContents.send('command', { type: 'intro', key: settings.wallpaper, effect: settings.effect, name: require('node:os').userInfo().username });

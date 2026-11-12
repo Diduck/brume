@@ -13,7 +13,14 @@
   --general-soft: rgba(185, 194, 208, 0.12);
   --raised: rgba(255, 255, 255, 0.035);
   --raised-hover: rgba(255, 255, 255, 0.065);
-  --gutter: 26px;
+  /* La fenêtre agrandie garde la même mise en page, juste plus aérée : marges, espaces
+     entre les blocs et entre les tuiles grandissent avec la largeur. */
+  --gutter: clamp(26px, 5.5vw - 9px, 110px);
+  --gap-s: clamp(6px, 0.9vw, 14px);
+  --u: clamp(1px, 0.1vw + 0.36px, 2.2px); /* 1px à 640 de large, ~1,8px à 1440 */
+  /* Colonne de contenu : jamais plus large que ça ; au-delà, ce sont les marges qui grandissent. */
+  --col: 860px;
+  --side: max(var(--gutter), calc((100vw - var(--col)) / 2));
 }
 
 body.panel-page {
@@ -90,7 +97,7 @@ button {
 .hero-text {
   position: absolute;
   z-index: 1;
-  left: var(--gutter);
+  left: var(--side);
   right: 46%;
   bottom: 10px;
   pointer-events: none;
@@ -130,7 +137,7 @@ button {
 }
 
 .content {
-  padding: 8px var(--gutter) 16px;
+  padding: calc(var(--u) * 8) var(--side) calc(var(--u) * 16);
 }
 
 .lede {
@@ -142,8 +149,8 @@ button {
 }
 
 .block + .block {
-  margin-top: 22px;
-  padding-top: 20px;
+  margin-top: calc(var(--u) * 22);
+  padding-top: calc(var(--u) * 20);
   border-top: 1px solid var(--line);
 }
 
@@ -197,7 +204,7 @@ button {
 .tiles {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 6px;
+  gap: var(--gap-s);
 }
 
 .tile {
@@ -246,7 +253,7 @@ button {
 .scenes {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
-  gap: 10px 8px;
+  gap: calc(var(--gap-s) + 4px) calc(var(--gap-s) + 2px);
 }
 
 .scene {
@@ -633,7 +640,7 @@ button {
   display: flex;
   align-items: center;
   gap: 18px;
-  padding: 13px var(--gutter) 15px;
+  padding: 13px var(--side) 15px;
   border-top: 1px solid var(--line);
   background: rgba(255, 255, 255, 0.02);
 }
@@ -684,4 +691,284 @@ button {
   .scene:hover .thumb {
     transform: none;
   }
+}
+
+/* ---------- Tes icônes sur le fond d'écran ---------- */
+
+.stickers {
+  margin-top: calc(var(--u) * 18);
+}
+
+.stk-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 10px;
+}
+
+.stk-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.stk-text .pw-label {
+  margin-bottom: 5px;
+}
+
+.stk-line {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: var(--ink-soft);
+}
+
+.stk-head .ghost {
+  height: 34px;
+}
+
+.ghost:disabled {
+  opacity: 0.5;
+  cursor: progress;
+}
+
+.icon.line {
+  fill: none !important;
+  stroke-width: 2;
+}
+
+.stk-stage {
+  position: relative;
+  width: 100%;
+  max-width: 720px;
+  aspect-ratio: 16 / 10;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #141a2a;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+/* Sans icône : un écran plus bas, juste de quoi déposer un fichier. */
+.stickers:not(.has) .stk-stage {
+  aspect-ratio: auto !important;
+  height: 64px;
+  border-style: dashed;
+  border-color: rgba(242, 194, 126, 0.3);
+}
+
+.stickers:not(.has) .stk-canvas {
+  opacity: 0.35;
+}
+
+.stk-stage.over {
+  border-color: var(--scene);
+  box-shadow: 0 0 0 3px var(--scene-soft);
+}
+
+.stk-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+}
+
+.stk-canvas.grab {
+  cursor: grab;
+}
+
+.stk-canvas.dragging {
+  cursor: grabbing;
+}
+
+.stk-drop {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  padding: 0 18px;
+  font-size: 12.5px;
+  text-align: center;
+  color: var(--ink-soft);
+  pointer-events: none;
+}
+
+.stk-tools {
+  display: grid;
+  grid-template-columns: 1.15fr 1.25fr auto;
+  align-items: stretch;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.stk-size {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--raised);
+  font-size: 12.5px;
+}
+
+.stk-size-label {
+  color: var(--ink);
+  font-weight: 500;
+}
+
+.stk-size input {
+  flex: 1;
+  min-width: 0;
+  accent-color: var(--scene);
+}
+
+.stk-size-out {
+  width: 3.4em;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-faint);
+}
+
+.stk-pixel {
+  padding-block: 8px;
+}
+
+.stk-remove {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: none;
+  color: var(--ink-soft);
+  font: 500 12.5px/1 var(--sans);
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.stk-remove:hover {
+  background: rgba(255, 110, 110, 0.12);
+  color: #ffb4b4;
+}
+
+.stk-remove .icon {
+  width: 15px;
+  height: 15px;
+}
+
+.stk-hint {
+  margin: 8px 0 0;
+  font-size: 11.5px;
+  color: var(--ink-faint);
+}
+
+/* ---------- Météo en direct ---------- */
+
+.live {
+  margin-bottom: 12px;
+}
+
+.live-sw {
+  padding-block: 12px;
+}
+
+/* Choisie, elle s'allume comme une tuile de météo choisie. */
+.live.on .live-sw {
+  border-color: #eef2f8;
+  background: #eef2f8;
+  color: #0d1119;
+}
+
+.live.on .live-sw .sw-line {
+  color: rgba(13, 17, 25, 0.68);
+}
+
+.live.on .live-pin {
+  color: #2c5fa8;
+}
+
+/* Pendant la météo actuelle, la tuile du temps choisi par Brume reste visible, en plus discret. */
+.live.on ~ .tiles .tile.on {
+  background: var(--weather-soft);
+  border-color: rgba(169, 198, 238, 0.45);
+  color: var(--ink);
+}
+
+.live-pin {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  color: var(--weather);
+}
+
+.live .sw-line {
+  font-variant-numeric: tabular-nums;
+}
+
+.live-place {
+  display: flex;
+  align-items: center;
+  min-height: 30px;
+  margin-top: 6px;
+  padding-left: 12px;
+}
+
+.link {
+  padding: 4px 0;
+  border: 0;
+  background: none;
+  color: var(--weather);
+  font: 500 12.5px/1.2 var(--sans);
+  cursor: pointer;
+}
+
+.link:hover {
+  text-decoration: underline;
+}
+
+.live-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+
+.live-input {
+  width: 210px;
+  height: 30px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--ink);
+  font: 13px/1 var(--sans);
+}
+
+.live-input:focus {
+  outline: 2px solid var(--weather);
+  outline-offset: 0;
+}
+
+.live-form .ghost {
+  height: 30px;
+  border-color: rgba(169, 198, 238, 0.35);
+  background: var(--weather-soft);
+  color: var(--weather);
+}
+
+.live-msg {
+  font-size: 12px;
+  color: var(--ink-faint);
+}
+
+/* Un élément caché reste caché, même s'il a un display à lui. */
+[hidden] {
+  display: none !important;
+}
+
+.live:not(.on) .live-place {
+  display: none;
 }

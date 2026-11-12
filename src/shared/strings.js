@@ -45,6 +45,7 @@
       chambre: { label: 'Chambre', line: 'Une guirlande, un bureau, la ville dort.' },
       drones: { label: 'Drones', line: 'À l’heure bleue, un drone inspecte un viaduc dans la brume.' },
       toits: { label: 'Sur les toits', line: 'Deux amoureux au bord du toit, sous un ciel rose.' },
+      annecy: { label: 'Lac d’Annecy', line: 'Des voiliers sur l’eau turquoise, des parapentes au-dessus des montagnes.' },
       terrasse: { label: 'Terrasse', line: 'Un lampadaire, un arbre doré, la ville bleue.' },
     },
 
@@ -80,6 +81,33 @@
           realWeather: 'Le vrai temps de ta ville, mis à jour toutes les 20 minutes.',
         },
         tryIt: 'À essayer',
+        live: {
+          label: 'Météo actuelle',
+          off: 'Le vrai temps qu’il fait chez toi, en ce moment : Brume choisit l’effet toute seule.',
+          loading: 'Je regarde le ciel…',
+          error: 'Météo indisponible pour l’instant (pas d’Internet ?).',
+          // ex. « Annecy · 14 °C · Nuageux — vu à 18:16 »
+          status: (city, temp, sky, time) => `${city} · ${temp} °C · ${sky} — vu à ${time}`,
+          auto: 'position automatique',
+          change: 'Changer de lieu',
+          placeholder: 'Une ville (ex. Annecy)',
+          ok: 'OK',
+          useAuto: 'Position automatique',
+          notFound: 'Je ne trouve pas ce lieu.',
+          now: (label) => `Effet choisi : ${label}`,
+        },
+        // Le ciel, d'après les codes météo internationaux (WMO).
+        sky: (code, day) =>
+          code === 0 ? (day ? 'Grand soleil' : 'Nuit claire')
+          : code <= 2 ? 'Éclaircies'
+          : code === 3 ? 'Couvert'
+          : code <= 48 ? 'Brouillard'
+          : code <= 57 ? 'Bruine'
+          : code <= 67 ? 'Pluie'
+          : code <= 77 ? 'Neige'
+          : code <= 82 ? 'Averses'
+          : code <= 86 ? 'Averses de neige'
+          : 'Orage',
       },
       wallpaper: {
         title: 'Fond d’écran',
@@ -90,6 +118,20 @@
         openingLine: 'Quand tu déverrouilles ton Mac, la scène s’anime en grand pour t’accueillir.',
         lockLine: 'Brume filme l’animation de ta scène et la joue derrière l’écran de connexion, dès que tu ouvres ton Mac.',
         play: 'Jouer maintenant',
+      },
+      stickers: {
+        title: 'Tes icônes',
+        line: 'Pose une image ou l’icône d’une app où tu veux sur ton fond d’écran.',
+        add: 'Ajouter une icône',
+        addMore: 'Ajouter',
+        drop: 'Glisse ici une image ou une app, ou clique sur « Ajouter une icône ».',
+        hint: 'Fais glisser l’icône pour la placer. Elle reste sous les icônes du bureau.',
+        size: 'Taille',
+        pixel: 'Style pixel art',
+        pixelLine: 'L’icône prend les gros pixels de la scène.',
+        remove: 'Retirer',
+        chooseTitle: 'Choisis une image ou une application',
+        error: 'Brume n’a pas pu lire ce fichier (essaie une image PNG ou JPEG, ou une app).',
       },
       general: {
         title: 'Général',
@@ -126,7 +168,7 @@
       behind: 'Derrière les fenêtres',
       accumulate: 'S’accumule sur les fenêtres',
       snowballs: 'Boules de neige et bonshommes',
-      realWeather: 'Météo de chez moi (en direct)',
+      realWeather: 'Météo actuelle (chez moi, en direct)',
       pauseOnBattery: 'Pause sur batterie',
       openAtLogin: 'Lancer au démarrage',
       stats: 'Afficher les statistiques',

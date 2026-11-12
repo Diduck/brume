@@ -55,6 +55,10 @@
       scene: 5, skyTop: '#060d26', skyMid: '#0f2c63', horizon: '#3aa9cf', sunColor: '#ffd27a', sun: [0.5, 0.2, 0, -1],
       cloud: '#11295a', far: '#22558c', mid: '#0c1c3c', near: '#050b1c', light: '#ffae45', neon: '#ffd98a', stars: 0.6, rain: 0,
     },
+    annecy: {
+      scene: 3, skyTop: '#2a64b0', skyMid: '#6f9ed0', horizon: '#c4d8e8', sunColor: '#fff8e6', sun: [0.3, 0.2, 0, -1],
+      cloud: '#e4ebf2', far: '#6a86a4', mid: '#3e6e86', near: '#1e3a2c', light: '#ffd890', neon: '#8fd6e0', stars: 0, rain: 0,
+    },
     drones: {
       scene: 6, skyTop: '#262e46', skyMid: '#4a536e', horizon: '#ad978e', sunColor: '#c8c6c4', sun: [0.8, 0.11, 0.03, 1],
       cloud: '#3c4560', far: '#5f6579', mid: '#41485c', near: '#232a2a', light: '#e9c48c', neon: '#ff7a1c', stars: 0.1, rain: 0,
@@ -63,7 +67,7 @@
 
   // Ordre d'affichage dans la fenêtre et le menu. « ville » est UNE scène : son ambiance
   // (nuit, crepuscule, pluie, sakura, automne) suit la météo, voir VILLE.
-  const ORDER = ['off', 'auto', 'toits', 'drones', 'terrasse', 'ville', 'cafe', 'foret', 'mer', 'chambre'];
+  const ORDER = ['off', 'auto', 'toits', 'annecy', 'drones', 'terrasse', 'ville', 'cafe', 'foret', 'mer', 'chambre'];
 
   // La Ville : quelle ambiance pour quel temps.
   const VILLE = { none: 'crepuscule', snow: 'nuit', rain: 'pluie', storm: 'pluie', sakura: 'sakura', leaves: 'automne', fireflies: 'nuit', starfall: 'nuit' };
@@ -73,13 +77,13 @@
   // scènes qui lui vont ; Brume passe de l'une à l'autre toutes les 3 heures, si bien que
   // toutes les scènes finissent par apparaître au fil des saisons.
   const AUTO_SCENES = {
-    none: ['mer', 'toits', 'drones', 'crepuscule'],
-    snow: ['nuit', 'chambre', 'cafe'],
-    rain: ['pluie', 'cafe', 'chambre'],
+    none: ['mer', 'toits', 'annecy', 'drones', 'crepuscule'],
+    snow: ['nuit', 'chambre', 'annecy', 'cafe'],
+    rain: ['pluie', 'cafe', 'annecy', 'chambre'],
     storm: ['pluie', 'chambre', 'drones'],
-    sakura: ['sakura', 'toits', 'terrasse'],
-    leaves: ['automne', 'foret', 'cafe'],
-    fireflies: ['foret', 'terrasse', 'toits'],
+    sakura: ['sakura', 'toits', 'annecy', 'terrasse'],
+    leaves: ['automne', 'foret', 'annecy', 'cafe'],
+    fireflies: ['foret', 'terrasse', 'annecy', 'toits'],
     starfall: ['nuit', 'terrasse', 'drones', 'chambre'],
   };
   const AUTO_PERIOD = 3 * 3600 * 1000;

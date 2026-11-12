@@ -25,6 +25,7 @@ const LAYERS = {
   chambre: ['outFar', 'outNear', 'glass', 'inside'],
   drones: ['bg', 'mid', 'fg'],
   toits: ['back', 'mid', 'fore'],
+  annecy: ['back', 'mid', 'fore'],
 };
 
 app.whenReady().then(async () => {

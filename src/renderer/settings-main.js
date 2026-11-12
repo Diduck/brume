@@ -13,6 +13,7 @@
 
   api.onState((st) => panel.setState(st));
   api.onThumbs((map) => panel.setThumbs(map));
+  api.onStickers((map) => B.Stickers.setImages(map));
 
   // L'aperçu ne tourne que lorsque la fenêtre est visible.
   const visibility = () => panel.setVisible(document.visibilityState === 'visible');

@@ -17,7 +17,7 @@
  * Plus : le traqueur des vraies fenêtres, le curseur 60 fois/s, la barre des menus,
  * les réglages et la pause automatique.
  */
-const { app, BrowserWindow, Tray, Menu, screen, ipcMain, nativeImage, powerMonitor, globalShortcut } = require('electron');
+const { app, BrowserWindow, Tray, Menu, screen, ipcMain, nativeImage, powerMonitor, globalShortcut, dialog } = require('electron');
 const path = require('node:path');
 const fs = require('node:fs');
 const S = require('../shared/strings');
@@ -27,6 +27,7 @@ const { WindowTracker } = require('./window-tracker');
 const weather = require('./weather');
 const desktopPicture = require('./desktop-picture');
 const lockscreen = require('./lockscreen');
+const stickerStore = require('./stickers');
 
 const EFFECTS = ['none', 'snow', 'rain', 'storm', 'sakura', 'leaves', 'fireflies', 'starfall'];
 const WALLPAPERS = PAL.ORDER;
@@ -50,6 +51,7 @@ let onBattery = false;
 let locked = false;
 let announcedRealWeather = false;
 let lastCursor = { x: NaN, y: NaN };
+let live = null; // météo en direct : { state: 'loading' | 'ok' | 'error', city, temperature, code, isDay, at, auto }
 let intro = null; // { win, startedAt, from } pendant une animation d'ouverture
 
 /* ---------- Robustesse : journal d'erreurs et réparation automatique ---------- */
@@ -72,6 +74,14 @@ app.on('render-process-gone', (_event, contents, details) => {
 });
 app.on('child-process-gone', (_event, details) => log('processus arrêté :', details.type, details.reason, details.exitCode));
 app.on('will-quit', () => log('fermeture de Brume'));
+
+// Fenêtres « cachées » par macOS (un autre bureau, une app plein écran par-dessus) :
+// Chromium les déclare masquées et jette leur dernière image. En revenant sur le bureau,
+// la couche fond d'écran et la météo restaient vides ~1 s, le temps de redessiner — on
+// voyait l'image fixe, sans animation ni météo. On garde nos fenêtres toujours « visibles ».
+app.commandLine.appendSwitch('disable-features', 'MacWebContentsOcclusion,CalculateNativeWinOcclusion');
+app.commandLine.appendSwitch('disable-backgrounding-occluded-windows');
+app.commandLine.appendSwitch('disable-renderer-backgrounding');
 
 if (!app.requestSingleInstanceLock()) {
   app.quit();
@@ -96,6 +106,7 @@ function init() {
   log('démarrage de Brume', app.getVersion());
   if (app.dock) app.dock.hide();
   settings.load(app.getPath('userData'));
+  refreshStickers().catch((err) => log('icônes :', err.message));
   setAppMenu();
   onBattery = powerMonitor.isOnBatteryPower();
 
@@ -116,7 +127,7 @@ function init() {
   if (settings.get().lockScreen || settings.get().lockScreenSaved) scheduleLockVideo(8000);
   // Une vidéo restée comme fond (ancienne version, plantage) : retour à l'image fixe.
   if (settings.get().lockScreenSaved) setTimeout(() => lockVideoOff(true), 6000);
-  setInterval(() => settings.get().realWeather && refreshRealWeather(), 20 * 60 * 1000);
+  setInterval(() => settings.get().realWeather && refreshRealWeather(), 15 * 60 * 1000);
   // « Auto » change de scène toutes les 3 heures : on suit (image fixe, vidéo, menu).
   let autoKey = PAL.resolve(settings.get().wallpaper, settings.get().effect);
   setInterval(() => {
@@ -187,7 +198,7 @@ function displayInfo(display) {
 }
 
 function stateFor(display) {
-  return { settings: settings.get(), paused: isPaused(), display: displayInfo(display) };
+  return { settings: settings.get(), paused: isPaused(), display: displayInfo(display), live };
 }
 
 /* Couche météo */
@@ -236,7 +247,7 @@ function rebuildOverlays() {
     if (uiLayer.ready) send(uiLayer, 'state', stateFor(screen.getPrimaryDisplay()));
   }
   // Un écran débranché ne doit pas emporter la fenêtre de Brume hors de vue.
-  if (panel && !panel.win.isDestroyed()) panel.win.setBounds(panelBounds(panel.win.getBounds()));
+  if (panel && !panel.win.isDestroyed() && !panelBig(panel.win)) panel.win.setBounds(panelBounds(panel.win.getBounds()));
   syncWallpaper();
 }
 
@@ -244,8 +255,10 @@ function rebuildOverlays() {
 
 function syncWallpaper() {
   const s = settings.get();
+  // Une couche par écran s'il y a une scène ; sinon, seulement pour tes icônes (posées
+  // alors sur ton fond d'écran macOS habituel, sur l'écran principal).
   const on = s.wallpaper !== 'off';
-  const displays = on ? screen.getAllDisplays() : [];
+  const displays = on ? screen.getAllDisplays() : s.stickers.length ? [screen.getPrimaryDisplay()] : [];
   const ids = new Set(displays.map((d) => d.id));
   for (const [id, layer] of wallLayers) {
     if (!ids.has(id)) {
@@ -261,6 +274,7 @@ function syncWallpaper() {
       wallLayers.set(d.id, layer);
       win.webContents.on('did-finish-load', () => {
         layer.ready = true;
+        send(layer, 'stickers', stickerUrls);
         send(layer, 'state', stateFor(layer.display));
         win.showInactive();
         scheduleStill(layer);
@@ -278,13 +292,64 @@ function syncWallpaper() {
   if (!on) restoreOriginalWallpapers();
 }
 
+/* Tes icônes sur le fond d'écran */
+
+const STICKER_DIR = () => path.join(app.getPath('userData'), 'stickers');
+let stickerUrls = {}; // id -> data URL, envoyé aux pages quand la liste change
+
+async function refreshStickers() {
+  const ids = settings.get().stickers.map((t) => t.id);
+  const known = Object.keys(stickerUrls);
+  if (ids.length === known.length && ids.every((id) => id in stickerUrls)) return;
+  const fresh = await stickerStore.urls(STICKER_DIR(), ids.filter((id) => !(id in stickerUrls)));
+  const next = {};
+  for (const id of ids) next[id] = stickerUrls[id] || fresh[id] || null;
+  // Les pages oublient les icônes retirées (null) et chargent les nouvelles.
+  const patch = { ...next };
+  for (const id of known) if (!(id in next)) patch[id] = null;
+  stickerUrls = next;
+  for (const layer of wallLayers.values()) if (layer.ready) send(layer, 'stickers', patch);
+  if (panel && panel.ready) send(panel, 'stickers', patch);
+  stickerStore.prune(STICKER_DIR(), ids).catch(() => {});
+}
+
+// Ajoute une icône : le fichier choisi (sélecteur), ou celui glissé dans la fenêtre.
+async function addSticker(file) {
+  const T = S.panel.stickers;
+  if (!file) {
+    const res = await dialog.showOpenDialog(panel && !panel.win.isDestroyed() ? panel.win : undefined, {
+      title: T.chooseTitle,
+      buttonLabel: T.add,
+      defaultPath: '/Applications',
+      properties: ['openFile'],
+      filters: [{ name: T.chooseTitle, extensions: stickerStore.EXTENSIONS }],
+    });
+    if (res.canceled || !res.filePaths.length) return null;
+    file = res.filePaths[0];
+  }
+  try {
+    const id = await stickerStore.importFile(file, STICKER_DIR());
+    const list = settings.get().stickers;
+    if (list.length >= settings.MAX_STICKERS) return { error: T.error };
+    // Les nouvelles icônes se posent en décalé, pour ne pas se cacher les unes les autres.
+    const n = list.length;
+    const item = { id, x: 0.5 + ((n % 4) - 1.5) * 0.08, y: 0.45 + (Math.floor(n / 4) % 3) * 0.12, size: 0.14, pixel: true };
+    applySettings({ stickers: [...list, item] });
+    await refreshStickers();
+    return { id };
+  } catch (err) {
+    log('icône :', err.message);
+    return { error: T.error };
+  }
+}
+
 // Une fois le fondu terminé, on fige la scène et on en fait le vrai fond d'écran macOS.
 // La clé n'est retenue qu'après réussite : en cas d'échec (page en pause…), on réessaie.
 function scheduleStill(layer) {
   const s = settings.get();
   const scene = PAL.resolve(s.wallpaper, s.effect);
   // L'image fixe dépend de la scène ET du temps choisi (neige, pluie…).
-  const key = scene && `${scene}-${s.effect}`;
+  const key = scene && `${scene}-${s.effect}${layer.display.id === screen.getPrimaryDisplay().id && s.stickers.length ? `-${stickerStore.signature(s.stickers)}` : ''}`;
   if (!key || key === layer.stillKey || key === layer.pendingKey || isPaused()) return;
   layer.pendingKey = key;
   clearTimeout(layer.stillTimer);
@@ -364,13 +429,20 @@ const clamp = (v, a, b) => Math.min(Math.max(v, a), b);
 
 // Position : celle d'avant si elle tombe encore sur un écran, sinon centrée sur l'écran
 // principal ; toujours ramenée en entier dans la zone visible de l'écran le plus proche.
+// Taille : celle de son contenu (la page l'annonce), sauf si tu l'as redimensionnée à la
+// main — elle garde alors ta taille.
+const userSized = () => {
+  const b = settings.get().panelBounds;
+  return !!(b && Number.isFinite(b.width) && Number.isFinite(b.height));
+};
 function panelBounds(current) {
   const saved = current || settings.get().panelBounds;
   const has = saved && Number.isFinite(saved.x) && Number.isFinite(saved.y);
   const display = has ? screen.getDisplayMatching({ x: saved.x, y: saved.y, width: PANEL_SIZE.width, height: 60 }) : screen.getPrimaryDisplay();
   const wa = display.workArea;
-  const width = Math.min(PANEL_SIZE.width, wa.width - 16);
-  const height = Math.min((panel && panel.height) || PANEL_SIZE.height, wa.height - 16);
+  const mine = userSized() ? settings.get().panelBounds : null;
+  const width = Math.min(mine ? mine.width : PANEL_SIZE.width, wa.width - 16);
+  const height = Math.min(mine ? mine.height : (panel && panel.height) || PANEL_SIZE.height, wa.height - 16);
   const x = has ? saved.x : wa.x + (wa.width - width) / 2;
   const y = has ? saved.y : wa.y + (wa.height - height) / 2;
   return {
@@ -381,10 +453,12 @@ function panelBounds(current) {
   };
 }
 
+const panelBig = (win) => win.isMaximized() || win.isFullScreen() || win.isSimpleFullScreen();
+
 function savePanelBounds() {
-  if (!panel || panel.win.isDestroyed()) return;
-  const { x, y } = panel.win.getBounds();
-  settings.set({ panelBounds: { x, y } });
+  if (!panel || panel.win.isDestroyed() || panelBig(panel.win)) return;
+  const { x, y, width, height } = panel.win.getBounds();
+  settings.set({ panelBounds: panel.userSized ? { x, y, width, height } : { x, y } });
 }
 
 function createPanel() {
@@ -395,10 +469,13 @@ function createPanel() {
     titleBarStyle: 'hidden', // pas de barre de titre : l'aperçu en haut sert de poignée
     trafficLightPosition: { x: 16, y: 17 },
     backgroundColor: '#0d111a',
-    resizable: false,
+    // Redimensionnable, et le bouton vert la met en grand (plein écran) : le contenu suit.
+    resizable: true,
+    minWidth: 560,
+    minHeight: 420,
     minimizable: true, // bouton jaune : la fenêtre se range dans le Dock, le flocon la ramène
-    maximizable: false,
-    fullscreenable: false,
+    maximizable: true,
+    fullscreenable: true,
     webPreferences: {
       preload: PRELOAD,
       contextIsolation: true,
@@ -407,7 +484,14 @@ function createPanel() {
       spellcheck: false,
     },
   });
-  panel = { win, ready: false, wantShow: false };
+  panel = { win, ready: false, wantShow: false, userSized: userSized() };
+  // Redimensionnée à la main : elle garde ta taille (plus de hauteur automatique).
+  win.on('will-resize', () => (panel.userSized = true));
+  let sizeTimer = null;
+  win.on('resize', () => {
+    clearTimeout(sizeTimer);
+    sizeTimer = setTimeout(savePanelBounds, 400);
+  });
   // Le bouton rouge (ou ⌘W, Échap) cache la fenêtre : Brume continue dans la barre des menus.
   win.on('close', (event) => {
     if (quitting) return;
@@ -426,6 +510,7 @@ function createPanel() {
     panel.ready = true;
     sendPanelState();
     if (Object.keys(thumbs).length) send(panel, 'thumbs', thumbs);
+    send(panel, 'stickers', stickerUrls);
     if (panel.wantShow) showPanel();
   });
   win.loadFile(path.join(__dirname, '../renderer/settings.html'));
@@ -481,7 +566,7 @@ function showPanel() {
   const win = panel.win;
   setDockVisible(true);
   if (win.isMinimized()) win.restore(); // réduite dans le Dock : elle en ressort
-  if (!win.isVisible()) win.setBounds(panelBounds(win.getBounds()));
+  if (!win.isVisible() && !panelBig(win)) win.setBounds(panelBounds(win.getBounds()));
   // Apparaître sur le bureau (Space) actuel plutôt que d'y emmener l'utilisateur.
   win.setVisibleOnAllWorkspaces(true, { skipTransformProcessType: true });
   win.show();
@@ -505,6 +590,7 @@ function setPanelHeight(h) {
   const height = Math.round(clamp(h, 320, 4000));
   if (panel.height === height) return;
   panel.height = height;
+  if (panel.userSized || panelBig(panel.win)) return;
   panel.win.setBounds(panelBounds(panel.win.getBounds()));
 }
 
@@ -694,6 +780,8 @@ function setupPower() {
     locked = false;
     lockVideoOff();
     refresh();
+    // Au retour, le temps a pu changer (et le Wi-Fi met quelques secondes à revenir).
+    if (settings.get().realWeather) setTimeout(refreshRealWeather, 5000);
     if (!lockScreenOn()) playIntro(false); // déjà jouée sur l'écran de verrouillage
   });
   powerMonitor.on('suspend', set(() => {
@@ -750,6 +838,8 @@ function setupIpc() {
   ipcMain.on('panel:height', (event, h) => panel && event.sender === panel.win.webContents && setPanelHeight(h));
   ipcMain.on('intro:play', () => playIntro(true));
   ipcMain.on('wallpaper:thumb', (event, msg) => onThumb(event.sender, msg));
+  ipcMain.handle('weather:place', (event, name) => (panel && event.sender === panel.win.webContents ? setPlace(typeof name === 'string' && name.trim() ? name : null) : null));
+  ipcMain.handle('sticker:add', (event, file) => (panel && event.sender === panel.win.webContents ? addSticker(typeof file === 'string' ? file : null) : null));
   // La météo demande à l'interface d'afficher quelque chose.
   ipcMain.on('overlay:toast', (_event, text) => toastPrimary(text));
   ipcMain.on('overlay:stats', (_event, stats) => send(uiLayer, 'stats', stats));
@@ -780,6 +870,7 @@ function applySettings(patch, { toast = false } = {}) {
     toastPrimary(`${S.menu.wallpaper} : ${wp.label} — ${wp.line}`);
   }
   if (after.realWeather && !before.realWeather) refreshRealWeather();
+  if (after.stickers !== before.stickers) refreshStickers().catch((err) => log('icônes :', err.message));
   if (after.lockScreen !== before.lockScreen || (after.lockScreen && (after.wallpaper !== before.wallpaper || after.effect !== before.effect))) scheduleLockVideo();
 }
 
@@ -862,10 +953,15 @@ function toastPrimary(text) {
   send(uiLayer, 'command', { type: 'toast', text });
 }
 
+let weatherRetry = null;
 async function refreshRealWeather() {
+  live = { ...(live || {}), state: 'loading' };
+  sendPanelState();
   try {
-    const w = await weather.current();
-    if (!settings.get().realWeather) return;
+    const place = settings.get().place;
+    const w = await weather.current(place && place.city ? place : null);
+    live = { state: 'ok', city: w.city, temperature: w.temperature, code: w.code, isDay: w.isDay, at: w.at, auto: w.auto };
+    if (!settings.get().realWeather) return sendPanelState();
     const changed = settings.get().effect !== w.effect;
     settings.set({ effect: w.effect, wind: w.wind, intensity: w.intensity });
     if (changed && settings.get().lockScreen) scheduleLockVideo();
@@ -875,8 +971,28 @@ async function refreshRealWeather() {
     if (changed || !announcedRealWeather) toastPrimary(S.toasts.realWeather(w.city, S.effects[w.effect].label.toLowerCase(), w.temperature));
     announcedRealWeather = true;
   } catch (err) {
-    console.warn('[brume] météo réelle :', err.message);
+    log('météo réelle :', err.message);
+    live = { ...(live || {}), state: 'error' };
+    // Coupure passagère (réveil du Mac, Wi-Fi qui se reconnecte…) : on réessaie dans 1 min.
+    clearTimeout(weatherRetry);
+    weatherRetry = setTimeout(() => settings.get().realWeather && refreshRealWeather(), 60 * 1000);
+    sendPanelState();
     toastPrimary(S.toasts.realWeatherError);
+  }
+}
+
+// Lieu de la météo en direct : un nom de ville (géocodé), ou null pour la position automatique.
+async function setPlace(name) {
+  try {
+    const place = name ? await weather.geocode(name) : {};
+    settings.set({ place, realWeather: true });
+    broadcastState();
+    rebuildMenu();
+    await refreshRealWeather();
+    return { ok: true };
+  } catch (err) {
+    log('lieu de la météo :', err.message);
+    return { error: S.panel.weather.live.notFound };
   }
 }
 

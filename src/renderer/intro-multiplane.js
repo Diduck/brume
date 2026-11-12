@@ -105,6 +105,16 @@
       { t: 3, cz: 2.8, look: [0.65, 0.3], Z: 6 },
     ],
   };
+  // « Lac d'Annecy » : ciel et montagnes / ville, rive et lac / grands arbres et port.
+  // On arrive par la gauche, en longeant la vieille ville et le lac.
+  SPECS.annecy = {
+    layers: [{ Z: 6 }, { img: 'mid', Z: 2.8 }, { img: 'fore', Z: 1.35 }],
+    from: 'left',
+    path: () => [
+      { t: 0, cz: 3.0, look: [0.3, 0.32], Z: 6 },
+      { t: 3, cz: 2.7, look: [0.7, 0.36], Z: 6 },
+    ],
+  };
 
   /* ---------- Un contexte 2D qui range chaque dessin sur la bonne plaque ----------
    * Les changements d'état (couleur, transparence…) sont mémorisés et appliqués à la
