@@ -125,8 +125,9 @@ function init() {
 
   if (settings.get().realWeather) refreshRealWeather();
   if (settings.get().lockScreen || settings.get().lockScreenSaved) scheduleLockVideo(8000);
-  // Une vidéo restée comme fond (ancienne version, plantage) : retour à l'image fixe.
-  if (settings.get().lockScreenSaved) setTimeout(() => lockVideoOff(true), 6000);
+  // Au démarrage : sur un portable, la vidéo reste sous le bureau (voir keepVideo) ; sinon,
+  // une vidéo restée comme fond (ancienne version, plantage) laisse place à l'image fixe.
+  if (settings.get().lockScreenSaved) setTimeout(() => (keepVideo() ? lockVideoOn(true) : lockVideoOff(true)), 6000);
   setInterval(() => settings.get().realWeather && refreshRealWeather(), 15 * 60 * 1000);
   // « Auto » change de scène toutes les 3 heures : on suit (image fixe, vidéo, menu).
   let autoKey = PAL.resolve(settings.get().wallpaper, settings.get().effect);
@@ -385,7 +386,7 @@ async function onSnapshot(layer, msg) {
     await ensureOriginals(dir);
     if (settings.get().wallpaper === 'off') return; // désactivé entre-temps
     layer.lastFile = file;
-    if (locked) return; // écran verrouillé : le fond est la vidéo, on la laisse jouer
+    if (locked || keepVideo()) return; // le fond est la vidéo (verrouillé, ou portable) : on la laisse
     await desktopPicture.setAll({ [layer.display.id]: file });
     layer.stillKey = key;
     layer.lastFile = file;
@@ -677,7 +678,7 @@ function detectSpaceChange(list) {
   clearTimeout(spaceTimer);
   spaceTimer = setTimeout(() => {
     const map = {};
-    if (locked) return;
+    if (locked || keepVideo()) return;
     for (const layer of wallLayers.values()) if (layer.lastFile) map[layer.display.id] = layer.lastFile;
     if (Object.keys(map).length) desktopPicture.setAll(map).catch((err) => log('fond par bureau :', err.message));
   }, 700);
@@ -791,6 +792,7 @@ function setupPower() {
   // Le Mac se réveille souvent sur l'écran verrouillé : on vérifie avant de reprendre.
   powerMonitor.on('resume', () =>
     setTimeout(() => {
+      if (powerMonitor.getSystemIdleState(1) === 'locked') lockVideoOn(); // encore verrouillé : la vidéo, si pas déjà là
       if (powerMonitor.getSystemIdleState(1) !== 'locked') {
         locked = false;
         lockVideoOff();
@@ -871,6 +873,12 @@ function applySettings(patch, { toast = false } = {}) {
   }
   if (after.realWeather && !before.realWeather) refreshRealWeather();
   if (after.stickers !== before.stickers) refreshStickers().catch((err) => log('icônes :', err.message));
+  // Portable : plus de scène → la vidéo ne doit plus rester comme fond.
+  if (LAPTOP && after.wallpaper === 'off' && before.wallpaper !== 'off' && videoShown) {
+    videoShown = false;
+    const orig = Object.values(after.originalWallpapers || {})[0] || Object.values(before.originalWallpapers || {})[0];
+    if (orig) lockscreen.showImage(orig).catch((err) => log('fond d’origine :', err.message));
+  }
   if (after.lockScreen !== before.lockScreen || (after.lockScreen && (after.wallpaper !== before.wallpaper || after.effect !== before.effect))) scheduleLockVideo();
 }
 
@@ -887,6 +895,22 @@ function lockScreenOn() {
   return settings.get().lockScreen && !!settings.get().lockScreenSaved;
 }
 
+// MacBook : fermer l'écran endort le Mac aussitôt, sans laisser le temps de mettre la
+// vidéo en place (elle n'arrivait qu'après la connexion, une seconde, puis coupée).
+// Sur un portable, la vidéo reste donc en permanence le fond macOS, cachée sous la
+// couche animée de Brume : l'écran de verrouillage l'a déjà, quoi qu'il arrive.
+const LAPTOP = (() => {
+  try {
+    const cp = require('node:child_process');
+    const model = cp.execFileSync('/usr/sbin/sysctl', ['-n', 'hw.model'], { encoding: 'utf8', timeout: 1000 });
+    if (/macbook/i.test(model)) return true;
+    return /InternalBattery/.test(cp.execFileSync('/usr/bin/pmset', ['-g', 'batt'], { encoding: 'utf8', timeout: 1000 }));
+  } catch {
+    return false;
+  }
+})();
+const keepVideo = () => LAPTOP && lockScreenOn() && settings.get().wallpaper !== 'off';
+
 // L'image fixe de l'écran principal (pour tous les bureaux).
 function primaryStill() {
   const layer = wallLayers.get(screen.getPrimaryDisplay().id) || [...wallLayers.values()][0];
@@ -894,12 +918,14 @@ function primaryStill() {
 }
 
 let videoShown = false;
-function lockVideoOn() {
+function lockVideoOn(force = false) {
   if (!lockScreenOn()) return;
+  if (videoShown && keepVideo() && !force) return; // déjà en place sous le bureau
   videoShown = true;
   lockscreen.showVideo(settings.get().lockScreenSaved.assetID).catch((err) => log('vidéo de verrouillage :', err.message));
 }
 function lockVideoOff(force = false) {
+  if (keepVideo()) return; // portable : la vidéo reste (voir keepVideo)
   if (!videoShown && !force) return;
   videoShown = false;
   const still = primaryStill();
@@ -918,6 +944,11 @@ async function updateLockVideo() {
   try {
     if (!s.lockScreen) {
       if (s.lockScreenSaved) {
+        // D'abord l'image fixe comme fond (sinon le fond resterait la vidéo Aerial remise).
+        videoShown = true;
+        const still = primaryStill();
+        if (still) await lockscreen.showImage(still).catch(() => {});
+        videoShown = false;
         await lockscreen.restore(path.join(LOCK_DIR(), 'originaux'));
         settings.set({ lockScreenSaved: null });
         lockKeyDone = null;
@@ -941,6 +972,7 @@ async function updateLockVideo() {
     await fs.promises.rm(out, { force: true });
     settings.set({ lockScreenSaved: { assetID: res.assetID } });
     lockKeyDone = id;
+    if (keepVideo()) lockVideoOn(true); // portable : la nouvelle vidéo devient le fond tout de suite
     log(`écran de verrouillage : ${id} filmé et installé (${((Date.now() - t0) / 1000).toFixed(1)} s)`);
   } catch (err) {
     log('écran de verrouillage :', err.message);
