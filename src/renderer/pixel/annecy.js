@@ -1935,6 +1935,226 @@
       this.bolt = null;
       this.nextBolt = 5;
       this.nextToggle = 4;
+      // Un drone qui se balade au-dessus du lac (pas sous la pluie, l'orage ou la neige),
+      // et, pendant les feux d'artifice, un drone qui tient une boule à facettes au bout
+      // d'une corde.
+      this.drone = look.wet || look.snow || this.effect === 'snow' ? null : this.newDrone();
+      this.disco = this.fwOn ? this.newDisco() : null;
+    }
+
+    /* ================= Les drones ================= */
+
+    // Les sprites du drone (celui de la scène Drones), et leur version de nuit : une
+    // silhouette sombre, qu'on repère à ses feux.
+    droneSet() {
+      if (this._drone && this._droneNight === !!this.look.night) return this._drone;
+      const D = B.DroneSprite && B.DroneSprite.mid;
+      if (!D) return null;
+      const dark = (img) => {
+        const c = document.createElement('canvas');
+        c.width = img.width;
+        c.height = img.height;
+        const g = c.getContext('2d');
+        g.drawImage(img, 0, 0);
+        const d = g.getImageData(0, 0, c.width, c.height);
+        for (let i = 0; i < d.data.length; i += 4) {
+          d.data[i] = d.data[i] * 0.3 + 10;
+          d.data[i + 1] = d.data[i + 1] * 0.32 + 12;
+          d.data[i + 2] = d.data[i + 2] * 0.42 + 22;
+        }
+        g.putImageData(d, 0, 0);
+        return c;
+      };
+      const night = !!this.look.night;
+      this._droneNight = night;
+      this._drone = { ...D, fly: night ? D.fly.map(dark) : D.fly };
+      return this._drone;
+    }
+
+    newDrone() {
+      const { W, H } = this;
+      const d = { x: W * (0.3 + Math.random() * 0.4), y: H * (0.34 + Math.random() * 0.12), vx: 0, vy: 0, wait: 1 + Math.random() * 2, tx: 0, ty: 0 };
+      this.droneTarget(d);
+      return d;
+    }
+
+    // Prochaine étape : au-dessus du lac, de la ville ou de la rive, à hauteur variable.
+    droneTarget(d) {
+      const { W, H } = this;
+      const lo = Math.max(this.X0 + 12, -W * 0.4);
+      const hi = Math.min(this.X1 - 12, W * 1.25);
+      d.tx = lo + Math.random() * (hi - lo);
+      d.ty = H * (0.28 + Math.random() * 0.24);
+    }
+
+    newDisco() {
+      const { W, H } = this;
+      const hx = W * 0.2;
+      return { hx, hy: H * 0.27, x: hx, y: H * 0.27, px: hx, pvx: 0, ang: 0.2, angV: 0, rope: 16, rot: 0 };
+    }
+
+    // Un drone qui se balade : il accélère, freine, s'arrête un moment en vol stationnaire.
+    updateDrone(dt) {
+      const d = this.drone;
+      if (!d) return;
+      if (d.wait > 0) {
+        d.wait -= dt;
+        d.vx *= Math.pow(0.05, dt);
+        d.vy *= Math.pow(0.05, dt);
+      } else {
+        const dx = d.tx - d.x;
+        const dy = d.ty - d.y;
+        const dist = Math.hypot(dx, dy);
+        if (dist < 3) {
+          d.wait = 1.5 + Math.random() * 4;
+          this.droneTarget(d);
+        } else {
+          const vmax = Math.min(16, dist * 0.9); // freine en arrivant
+          const ax = (dx / dist) * vmax - d.vx;
+          const ay = (dy / dist) * vmax - d.vy;
+          d.vx += ax * Math.min(1, dt * 1.6);
+          d.vy += ay * Math.min(1, dt * 1.6);
+        }
+      }
+      d.x += d.vx * dt;
+      d.y += d.vy * dt;
+    }
+
+    // La boule à facettes : le drone flotte en huit au-dessus du lac, la boule se balance
+    // au bout de sa corde (un pendule poussé par les mouvements du drone) et tourne.
+    updateDisco(dt) {
+      const b = this.disco;
+      if (!b) return;
+      const t = this.t;
+      b.x = b.hx + Math.sin(t * 0.21) * this.W * 0.07;
+      b.y = b.hy + Math.sin(t * 0.42) * 4;
+      const vx = (b.x - b.px) / Math.max(dt, 1e-3);
+      const ax = (vx - b.pvx) / Math.max(dt, 1e-3);
+      b.px = b.x;
+      b.pvx = vx;
+      const acc = -(60 / b.rope) * Math.sin(b.ang) - (Math.max(-40, Math.min(40, ax)) / b.rope) * Math.cos(b.ang) - b.angV * 0.6;
+      b.angV += acc * dt;
+      b.ang += b.angV * dt;
+      b.rot += dt * 1.4;
+    }
+
+    // Dessine un drone (centre x, y) ; la nuit, ses feux : rouge à gauche, vert à droite,
+    // un flash blanc régulier.
+    paintDrone(g, x, y, t, phase) {
+      const S = this.droneSet();
+      if (!S) return;
+      const img = S.fly[Math.floor(t * 24) % 2];
+      const x0 = Math.round(x - S.w / 2);
+      const y0 = Math.round(y - S.h / 2);
+      g.drawImage(img, x0, y0);
+      if (!this.look.night) return;
+      g.fillStyle = '#ff3a2e';
+      g.fillRect(x0 + S.navL[0], y0 + S.navL[1], 1, 1);
+      g.fillStyle = '#3cff7a';
+      g.fillRect(x0 + S.navR[0], y0 + S.navR[1], 1, 1);
+      if ((t + phase) % 1.3 < 0.09) {
+        g.fillStyle = '#ffffff';
+        g.fillRect(x0 + S.strobe[0], y0 + S.strobe[1], 1, 1);
+        g.fillStyle = 'rgba(255,255,255,0.35)';
+        g.fillRect(x0 + S.strobe[0] - 1, y0 + S.strobe[1], 3, 1);
+        g.fillRect(x0 + S.strobe[0], y0 + S.strobe[1] - 1, 1, 3);
+      }
+    }
+
+    drawDrone(g, t) {
+      const d = this.drone;
+      if (!d) return;
+      this.paintDrone(g, d.x, d.y + Math.sin(t * 2.3) * 0.6, t, 0);
+    }
+
+    drawDisco(g, t) {
+      const b = this.disco;
+      if (!b) return;
+      const S = this.droneSet();
+      const dy = b.y + Math.sin(t * 2.1) * 0.5;
+      this.paintDrone(g, b.x, dy, t, 0.6);
+      // La corde, du ventre du drone jusqu'à la boule.
+      const ax = Math.round(b.x);
+      const ay = Math.round(dy + (S ? S.h / 2 : 3));
+      const bx = Math.round(ax + Math.sin(b.ang) * b.rope);
+      const by = Math.round(ay + Math.cos(b.ang) * b.rope);
+      const n = Math.max(Math.abs(bx - ax), Math.abs(by - ay));
+      g.fillStyle = this.look.night ? 'rgba(150,156,176,0.75)' : 'rgba(70,74,86,0.9)';
+      for (let i = 0; i <= n; i++) g.fillRect(Math.round(ax + ((bx - ax) * i) / n), Math.round(ay + ((by - ay) * i) / n), 1, 1);
+      // La boule : des facettes en damier qui défilent en tournant, éclairées par les
+      // feux d'artifice proches.
+      const R = 4.6;
+      const cx = bx;
+      const cy = by + 5;
+      // Un léger halo autour de la boule, la nuit.
+      if (this.look.night) {
+        for (let y = -9; y <= 9; y++) {
+          for (let x = -9; x <= 9; x++) {
+            const d = Math.hypot(x, y) / 9;
+            if (d >= 1 || d < 0.45) continue;
+            const q = Math.floor((1 - d) * 3 + bayer(cx + x, cy + y) * 0.9) / 3;
+            if (q <= 0) continue;
+            g.fillStyle = `rgba(190,205,255,${(q * 0.16).toFixed(3)})`;
+            g.fillRect(cx + x, cy + y, 1, 1);
+          }
+        }
+      }
+      let tint = null;
+      for (const f of this.flashes || []) {
+        const dd = Math.hypot(f.x - cx, f.y - cy);
+        if (dd < 70) {
+          const w = (1 - dd / 70) * (1 - f.age / 0.7);
+          if (!tint || w > tint.w) tint = { w, c: FW_COLORS[f.ci] };
+        }
+      }
+      const tones = [[70, 76, 92], [130, 138, 156], [196, 204, 220], [244, 248, 255]];
+      for (let y = -5; y <= 5; y++) {
+        for (let x = -5; x <= 5; x++) {
+          const r2 = (x * x) / (R * R) + (y * y) / (R * R);
+          if (r2 > 1) continue;
+          const lon = Math.asin(Math.max(-1, Math.min(1, x / (R * Math.sqrt(1 - Math.min(0.99, (y * y) / (R * R))) || 1))));
+          const col = Math.floor((lon / Math.PI) * 6 + b.rot * 2);
+          const row = y + 5;
+          let k = ((col + row) & 1) + (x < 0 ? 1 : 0) + (y < 0 ? 1 : 0);
+          if (r2 > 0.7) k = Math.max(0, k - 1);
+          let c = tones[Math.min(3, k)];
+          if (hash(col & 1023, row, Math.floor(t * 6)) > 0.93) c = [255, 255, 255]; // une facette qui brille
+          if (tint) c = [c[0] + (tint.c[0] - c[0]) * tint.w * 0.6, c[1] + (tint.c[1] - c[1]) * tint.w * 0.6, c[2] + (tint.c[2] - c[2]) * tint.w * 0.6];
+          g.fillStyle = css(c, 1);
+          g.fillRect(cx + x, cy + y, 1, 1);
+        }
+      }
+      // L'étoile qui scintille sur la boule.
+      if (Math.sin(t * 3.1) > 0.2) {
+        const sx = cx - 2;
+        const sy = cy - 2;
+        g.fillStyle = 'rgba(255,255,255,0.95)';
+        g.fillRect(sx, sy, 1, 1);
+        g.fillStyle = 'rgba(255,255,255,0.55)';
+        g.fillRect(sx - 2, sy, 5, 1);
+        g.fillRect(sx, sy - 2, 1, 5);
+      }
+      // Les reflets de la boule : des petits points de lumière qui tournent autour d'elle,
+      // dans le ciel et sur le lac.
+      g.globalCompositeOperation = 'lighter';
+      const sh = this.shoreY(cx);
+      const SPOTS = [[255, 255, 255], [255, 170, 220], [150, 220, 255], [255, 236, 160]];
+      for (let i = 0; i < 26; i++) {
+        const a = i * 2.39996 + b.rot * (i % 2 ? 0.9 : -0.7);
+        const rr = 9 + ((i * 37) % 34);
+        const x = Math.round(cx + Math.cos(a) * rr);
+        const y = Math.round(cy + Math.sin(a) * rr * 0.55);
+        const tw = 0.5 + 0.5 * Math.sin(t * 5 + i * 1.7);
+        g.fillStyle = css(SPOTS[i % SPOTS.length], (this.look.night ? 0.75 : 0.3) * tw);
+        g.fillRect(x, y, 1, 1);
+        // Sur l'eau, le même point, renvoyé plus bas.
+        const ry = Math.round(sh + (sh - y) * 0.3 + 6);
+        if (this.lakeMask && this.lakeMask[ry * this.water.sw + x + this.extL]) {
+          g.fillStyle = css(SPOTS[i % SPOTS.length], (this.look.night ? 0.3 : 0.15) * tw);
+          g.fillRect(x, ry, 2, 1);
+        }
+      }
+      g.globalCompositeOperation = 'source-over';
     }
 
     newPara(i, initial, semnoz = false) {
@@ -2063,6 +2283,8 @@
         if (p.cy > this.mountY(p.cx) - 6 || (p.semnoz ? pu < -1.4 || pu > -0.35 : pu < 0.74 || pu > 1.3)) this.paras[i] = this.newPara(p.id + 17 + Math.floor(t), false, p.semnoz);
       }
       this.updateFireworks(dt);
+      this.updateDrone(dt);
+      this.updateDisco(dt);
       // Fumées des cheminées.
       if (look.smoke) for (const c of this.chimneys) if (Math.random() < dt * (c.fore ? 2 : 0.6)) this.smoke.emit(c.x + (Math.random() - 0.5), c.y, c.fore ? 4 : 2.5, c.fore ? 5 : 3);
       this.smoke.update(dt);
@@ -2167,7 +2389,9 @@
       this.drawWater(g, t);
       this.drawBoats(g, t);
       this.smoke.draw(g, 0.35);
+      this.drawDrone(g, t);
       this.drawFireworks(g, t);
+      this.drawDisco(g, t);
 
       // 3. Le premier plan : grands arbres, port, immeubles.
       g.drawImage(this.fore, wx0, 0);
