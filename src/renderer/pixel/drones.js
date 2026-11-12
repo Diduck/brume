@@ -2281,40 +2281,36 @@
       const night = this.lk.night;
       const k = night ? 0.8 : 1;
       const col = (r, gg, b) => `rgb(${Math.round(r * k)},${Math.round(gg * k)},${Math.round(b * k)})`;
-      const tilt = Math.sin(c.t * 2.3) > 0.5 ? 1 : 0; // le nez pique un peu
-      // Carrosserie bleu ciel, ombre bleu nuit, toit clair, chromes.
-      g.fillStyle = col(30, 42, 70);
-      g.fillRect(x, y + 4, 20, 1); // contour bas
+      // Petite voiture (13 × 6) : carrosserie bleu ciel, toit clair, vitres, roues.
       g.fillStyle = col(96, 168, 220);
-      g.fillRect(x, y + 1, 20, 3);
+      g.fillRect(x, y + 1, 13, 2);
+      g.fillRect(x + 3, y - 1, 7, 2); // habitacle
       g.fillStyle = col(62, 120, 178);
-      g.fillRect(x, y + 3, 20, 1);
+      g.fillRect(x, y + 2, 13, 1);
+      g.fillStyle = col(30, 42, 70);
+      g.fillRect(x + 1, y + 3, 11, 1); // dessous
       g.fillStyle = col(214, 226, 236);
-      g.fillRect(x + 5, y - 3, 10, 1); // toit
-      g.fillStyle = col(96, 168, 220);
-      g.fillRect(x + 4, y - 2, 12, 3); // habitacle
+      g.fillRect(x + 4, y - 2, 5, 1); // toit
+      g.fillRect(x, y + 1, 1, 1); // pare-chocs
       g.fillStyle = night ? '#ffd98a' : col(40, 56, 84);
-      g.fillRect(x + 5, y - 2, 4, 2); // vitres
-      g.fillRect(x + 10, y - 2, 4, 2);
-      g.fillStyle = col(214, 226, 236);
-      g.fillRect(x + 19, y + 2 + tilt, 1, 1); // pare-chocs
-      g.fillRect(x, y + 2, 1, 1);
+      g.fillRect(x + 4, y - 1, 2, 1); // vitres
+      g.fillRect(x + 7, y - 1, 2, 1);
       g.fillStyle = '#16141a';
-      g.fillRect(x + 3, y + 5, 3, 1); // roues
-      g.fillRect(x + 14, y + 5, 3, 1);
+      g.fillRect(x + 2, y + 3, 2, 1); // roues
+      g.fillRect(x + 9, y + 3, 2, 1);
       // Phare et son faisceau, petites étincelles derrière.
       g.globalCompositeOperation = 'lighter';
       g.fillStyle = 'rgba(255,240,190,1)';
-      g.fillRect(x + 19, y + 1, 1, 1);
-      for (let q = 1; q <= 10; q++) {
-        g.fillStyle = `rgba(255,230,170,${(0.22 * (1 - q / 11)).toFixed(3)})`;
-        g.fillRect(x + 19 + q, y + 1 - (q > 4 ? 1 : 0), 1, q > 4 ? 3 : 1);
+      g.fillRect(x + 12, y + 1, 1, 1);
+      for (let q = 1; q <= 6; q++) {
+        g.fillStyle = `rgba(255,230,170,${(0.2 * (1 - q / 7)).toFixed(3)})`;
+        g.fillRect(x + 12 + q, y + 1 - (q > 3 ? 1 : 0), 1, q > 3 ? 3 : 1);
       }
-      for (let q = 0; q < 6; q++) {
+      for (let q = 0; q < 4; q++) {
         const a = Math.sin(c.t * 9 + q * 1.7);
         if (a < 0.2) continue;
         g.fillStyle = `rgba(255,220,140,${(a * 0.7).toFixed(3)})`;
-        g.fillRect(x - 2 - q * 3, y + 3 + Math.round(Math.sin(c.t * 5 + q) * 2), 1, 1);
+        g.fillRect(x - 2 - q * 2, y + 2 + Math.round(Math.sin(c.t * 5 + q) * 1.5), 1, 1);
       }
       g.globalCompositeOperation = 'source-over';
     }
