@@ -76,7 +76,8 @@ Brume vit dans la **barre des menus** (icône flocon). Raccourci pause : ⌥⌘B
   mais macOS y joue les fonds « Aerial » (des vidéos). Brume filme sa propre animation en 4K et
   la range à la place de la vidéo Aerial ; l'original est gardé et remis quand on désactive.
 - **Easter egg** : sur la scène Drones, trace un cercle puis un trait vers le bas avec la souris,
-  comme un coup de baguette… 🚂
+  comme un coup de baguette… 🚂 Un train à vapeur passe sur le viaduc, suivi le jour d'une
+  vieille voiture bleue volante, et la nuit de spectres encapuchonnés.
 - **Panneau** : une vraie fenêtre (déplaçable, boutons macOS), avec un aperçu vivant.
 - **Météo réelle** (option) : position approximative par IP + Open-Meteo. Quand il ne tombe rien,
   la saison décide : pétales au printemps, feuilles en automne, lucioles les nuits douces,

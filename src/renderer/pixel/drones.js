@@ -1822,6 +1822,9 @@
         }
       }
 
+      if (this.car) this.updateCar(dt);
+      if (this.wraiths) this.updateWraiths(dt);
+
       // Monde élargi : la fumée de la cabane.
       if (this.chimney && this.extR) {
         this.smokeT -= dt;
@@ -2076,6 +2079,8 @@
       }
       g.drawImage(this.deckFront, ox, 0);
       if (this.train && this.train.magic) this.drawSteam(g);
+      if (this.car) this.drawFlyingCar(g);
+      if (this.wraiths) this.drawWraiths(g);
       this.drawMist(g, this.mistNear, L.vfloor - 12, -1.8, 0.85);
 
       // ----- Premier plan : la pilote et son poste -----
@@ -2220,6 +2225,15 @@
       const len = 24 + cars * 19;
       this.train = { magic: true, dir: 1, cars, len, x: X0 - len - 4, v: 34, t: 0 };
       this.steam = [];
+      // … et derrière lui, selon l'heure :
+      //  • le jour, une vieille voiture bleue volante qui le rattrape et le suit en zigzag ;
+      //  • la nuit, des spectres encapuchonnés qui le poursuivent en flottant.
+      const h = new Date().getHours();
+      const night = this.lk.night || h >= 21 || h < 6;
+      this.car = night ? null : { x: X0 - len - 70, y: this.L.deckY - 26, v: 50, t: 0 };
+      this.wraiths = night
+        ? [0, 1, 2, 3].map((i) => ({ x: X0 - len - 50 - i * 26, y: this.L.deckY - 30, off: 0.15 + i * 0.22, alt: 19 + (i % 2) * 11 + i * 3, ph: i * 1.9, t: 0, flip: 0 }))
+        : null;
       this.sparks = (path || []).map((p, i) => ({ x: p.x, y: p.y, age: -i * 0.01, life: 1.2 + Math.random() * 0.6 }));
     }
 
@@ -2241,6 +2255,123 @@
         p.r = 1 + p.age * 2.2;
       }
       this.steam = this.steam.filter((p) => p.age < p.life);
+    }
+
+    // La voiture volante suit le train : elle le rattrape par l'arrière, puis reste au-dessus
+    // de ses voitures (un peu en retard, en tanguant). Le train parti, elle file à sa suite.
+    updateCar(dt) {
+      const c = this.car;
+      const T = this.train && this.train.magic ? this.train : null;
+      c.t += dt;
+      if (T) {
+        // Au-dessus des voitures, en zigzag : elle avance et recule un peu en tanguant.
+        const target = T.x + T.len * 0.35 + Math.sin(c.t * 1.6) * 16;
+        const gap = target - c.x;
+        c.x += (T.v + Math.max(-14, Math.min(28, gap * 1.2))) * dt;
+      } else c.x += c.v * dt;
+      c.y = this.L.deckY - 22 + Math.sin(c.t * 3.1) * 6 + Math.sin(c.t * 0.9) * 2;
+      if (c.x > this.X1 + 60) this.car = null;
+    }
+
+    drawFlyingCar(g) {
+      const c = this.car;
+      if (!c) return;
+      const x = Math.round(c.x);
+      const y = Math.round(c.y);
+      const night = this.lk.night;
+      const k = night ? 0.8 : 1;
+      const col = (r, gg, b) => `rgb(${Math.round(r * k)},${Math.round(gg * k)},${Math.round(b * k)})`;
+      const tilt = Math.sin(c.t * 2.3) > 0.5 ? 1 : 0; // le nez pique un peu
+      // Carrosserie bleu ciel, ombre bleu nuit, toit clair, chromes.
+      g.fillStyle = col(30, 42, 70);
+      g.fillRect(x, y + 4, 20, 1); // contour bas
+      g.fillStyle = col(96, 168, 220);
+      g.fillRect(x, y + 1, 20, 3);
+      g.fillStyle = col(62, 120, 178);
+      g.fillRect(x, y + 3, 20, 1);
+      g.fillStyle = col(214, 226, 236);
+      g.fillRect(x + 5, y - 3, 10, 1); // toit
+      g.fillStyle = col(96, 168, 220);
+      g.fillRect(x + 4, y - 2, 12, 3); // habitacle
+      g.fillStyle = night ? '#ffd98a' : col(40, 56, 84);
+      g.fillRect(x + 5, y - 2, 4, 2); // vitres
+      g.fillRect(x + 10, y - 2, 4, 2);
+      g.fillStyle = col(214, 226, 236);
+      g.fillRect(x + 19, y + 2 + tilt, 1, 1); // pare-chocs
+      g.fillRect(x, y + 2, 1, 1);
+      g.fillStyle = '#16141a';
+      g.fillRect(x + 3, y + 5, 3, 1); // roues
+      g.fillRect(x + 14, y + 5, 3, 1);
+      // Phare et son faisceau, petites étincelles derrière.
+      g.globalCompositeOperation = 'lighter';
+      g.fillStyle = 'rgba(255,240,190,1)';
+      g.fillRect(x + 19, y + 1, 1, 1);
+      for (let q = 1; q <= 10; q++) {
+        g.fillStyle = `rgba(255,230,170,${(0.22 * (1 - q / 11)).toFixed(3)})`;
+        g.fillRect(x + 19 + q, y + 1 - (q > 4 ? 1 : 0), 1, q > 4 ? 3 : 1);
+      }
+      for (let q = 0; q < 6; q++) {
+        const a = Math.sin(c.t * 9 + q * 1.7);
+        if (a < 0.2) continue;
+        g.fillStyle = `rgba(255,220,140,${(a * 0.7).toFixed(3)})`;
+        g.fillRect(x - 2 - q * 3, y + 3 + Math.round(Math.sin(c.t * 5 + q) * 2), 1, 1);
+      }
+      g.globalCompositeOperation = 'source-over';
+    }
+
+    // Les spectres : chacun vise un point au-dessus du train et flotte en zigzag.
+    updateWraiths(dt) {
+      const T = this.train && this.train.magic ? this.train : null;
+      for (const w of this.wraiths) {
+        w.t += dt;
+        const prevX = w.x;
+        if (T) {
+          const target = T.x + T.len * w.off + Math.sin(w.t * 1.3 + w.ph) * 14;
+          w.x += (T.v + Math.max(-10, Math.min(30, (target - w.x) * 1.1))) * dt;
+        } else w.x += 44 * dt;
+        w.y = this.L.deckY - w.alt + Math.sin(w.t * 2.2 + w.ph) * 5 + Math.sin(w.t * 0.8 + w.ph) * 3;
+        w.flip = w.x < prevX ? 1 : 0;
+      }
+      this.wraiths = this.wraiths.filter((w) => w.x < this.X1 + 40);
+      if (!this.wraiths.length) this.wraiths = null;
+    }
+
+    // Un spectre (≈ 9 × 15) : capuche noire, visage creux, cape en lambeaux qui ondule,
+    // une main grise tendue, et une traînée de brume froide.
+    drawWraiths(g) {
+      if (!this.wraiths) return;
+      for (const w of this.wraiths) {
+        const x = Math.round(w.x);
+        const y = Math.round(w.y);
+        const t = w.t;
+        // Traînée froide.
+        for (let q = 1; q <= 8; q++) {
+          g.fillStyle = `rgba(150,170,200,${(0.16 * (1 - q / 9)).toFixed(3)})`;
+          g.fillRect(x - q * 2, y + 6 + Math.round(Math.sin(t * 4 + q) * 1.5), 2, 2);
+        }
+        // Capuche et corps.
+        g.fillStyle = '#0c0b12';
+        g.fillRect(x + 2, y, 4, 1);
+        g.fillRect(x + 1, y + 1, 6, 3);
+        g.fillRect(x, y + 4, 8, 4);
+        g.fillStyle = '#1b1a24';
+        g.fillRect(x + 6, y + 1, 1, 6); // pli éclairé par la lune
+        g.fillStyle = '#04040a';
+        g.fillRect(x + 4, y + 2, 2, 2); // le visage : un creux
+        // Cape en lambeaux : franges de longueurs qui ondulent, tirées vers l'arrière.
+        g.fillStyle = '#0c0b12';
+        for (let i = 0; i < 8; i++) {
+          const len = 3 + ((i * 7 + Math.floor(t * 6 + w.ph * 3)) % 4) + (i < 3 ? 2 : 0);
+          const sway = Math.round(Math.sin(t * 5 + i * 0.9 + w.ph) * 1);
+          g.fillRect(x + i - (i < 4 ? 1 : 0) + sway, y + 8, 1, len);
+        }
+        // Main osseuse tendue vers le train.
+        if (Math.sin(t * 0.9 + w.ph) > -0.2) {
+          g.fillStyle = '#8a8e98';
+          g.fillRect(x + 8, y + 5, 2, 1);
+          g.fillRect(x + 10, y + 6, 1, 1);
+        }
+      }
     }
 
     drawMagicTrain(g) {
