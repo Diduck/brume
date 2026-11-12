@@ -27,6 +27,8 @@ contextBridge.exposeInMainWorld('brume', {
   // Enregistrement de l'animation en vidéo (écran de verrouillage) : une image à la fois.
   recordFrame: (buf) => ipcRenderer.invoke('record:frame', buf),
   recordDone: (info) => ipcRenderer.send('record:done', info || null),
+  // …ou la vidéo déjà encodée par la page (encodeur matériel du Mac, sans ffmpeg).
+  recordFile: (buf) => ipcRenderer.invoke('record:file', buf),
   // Fenêtre de Brume (réglages) et vignettes des scènes.
   onThumbs: listen('thumbs'),
   thumb: (key, url) => ipcRenderer.send('wallpaper:thumb', { key: String(key), url: typeof url === 'string' ? url : null }),

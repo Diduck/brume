@@ -2,6 +2,8 @@
 // Lancé par osascript -l JavaScript -e <ce script> '<json>' :
 //   { "plist": "<Index.plist>", "assetID": "<UUID>" }  → la vidéo « Aerial » (écran verrouillé)
 //   { "plist": "<Index.plist>", "image": "<chemin PNG>" } → une image (le bureau normal)
+//   { "plist": "<Index.plist>", "assetID": "<UUID>", "idleOnly": true } → la vidéo pour
+//     l'économiseur d'écran seulement (le bureau ne change pas)
 // Avec une vidéo, l'écran de veille (« Idle ») la joue aussi. Écrit le fichier, affiche « ok ».
 ObjC.import('Foundation');
 
@@ -39,7 +41,7 @@ function run(argv) {
     for (const k of keys) {
       const v = dict.objectForKey(k);
       if (!v || v.isNil() || !v.isKindOfClass($.NSDictionary)) continue;
-      if (k === 'Desktop' || (k === 'Idle' && !image)) {
+      if ((k === 'Desktop' && !args.idleOnly) || (k === 'Idle' && !image)) {
         setChoice(v);
         n++;
       } else if (k !== 'Idle') walk(v);

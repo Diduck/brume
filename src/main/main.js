@@ -199,7 +199,7 @@ function displayInfo(display) {
 }
 
 function stateFor(display) {
-  return { settings: settings.get(), paused: isPaused(), display: displayInfo(display), live };
+  return { settings: settings.get(), paused: isPaused(), display: displayInfo(display), live, lockState };
 }
 
 /* Couche météo */
@@ -890,6 +890,12 @@ const LOCK_DIR = () => path.join(app.getPath('userData'), 'lockscreen');
 let lockTimer = null;
 let lockBusy = false;
 let lockKeyDone = null;
+let lockState = null; // ce que la fenêtre affiche : null | 'filming' | 'needsAerial' | 'error'
+const setLockState = (st) => {
+  if (lockState === st) return;
+  lockState = st;
+  sendPanelState();
+};
 
 function lockScreenOn() {
   return settings.get().lockScreen && !!settings.get().lockScreenSaved;
@@ -957,7 +963,9 @@ async function updateLockVideo() {
       return;
     }
     if (!lockscreen.available()) {
-      log('écran de verrouillage : indisponible (ffmpeg ou vidéo Aerial manquants)');
+      log('écran de verrouillage : aucune vidéo Aerial téléchargée sur ce Mac');
+      setLockState('needsAerial');
+      scheduleLockVideo(5 * 60 * 1000); // on revérifie : l'utilisateur va peut-être en choisir une
       return;
     }
     const key = PAL.resolve(s.wallpaper !== 'off' ? s.wallpaper : 'auto', s.effect) || 'cafe';
@@ -967,15 +975,19 @@ async function updateLockVideo() {
     await fs.promises.mkdir(dir, { recursive: true });
     const out = path.join(dir, `brume-${id}.mov`);
     const t0 = Date.now();
+    setLockState('filming');
     await lockscreen.render({ key, effect: s.effect, out, preload: PRELOAD, page: path.join(__dirname, '../renderer/intro.html') });
     const res = await lockscreen.install(out, path.join(dir, 'originaux'));
     await fs.promises.rm(out, { force: true });
     settings.set({ lockScreenSaved: { assetID: res.assetID } });
     lockKeyDone = id;
+    setLockState(null);
     if (keepVideo()) lockVideoOn(true); // portable : la nouvelle vidéo devient le fond tout de suite
+    else lockscreen.showIdle(res.assetID).catch((err) => log('économiseur :', err.message)); // l'économiseur l'a tout de suite
     log(`écran de verrouillage : ${id} filmé et installé (${((Date.now() - t0) / 1000).toFixed(1)} s)`);
   } catch (err) {
     log('écran de verrouillage :', err.message);
+    setLockState('error');
   } finally {
     lockBusy = false;
   }

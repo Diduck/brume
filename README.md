@@ -58,8 +58,8 @@ npm run dist                            # + le .dmg et le .zip d'installation
 node tools/test-physics.js              # 13 tests de physique, sans écran
 ```
 
-Nécessite macOS (Apple Silicon) et Node 20+. L'écran de verrouillage animé utilise
-`ffmpeg` (`brew install ffmpeg`) ; sans lui, tout le reste marche.
+Nécessite macOS (Apple Silicon) et Node 20+. Rien d'autre à installer : la vidéo de
+l'écran de verrouillage est encodée par l'encodeur matériel du Mac (WebCodecs, HEVC 4K).
 
 Brume vit dans la **barre des menus** (icône flocon). Raccourci pause : ⌥⌘B.
 
@@ -93,8 +93,10 @@ Brume vit dans la **barre des menus** (icône flocon). Raccourci pause : ⌥⌘B
   longe, plan par plan, et s'arrête sur le cadre exact du fond. Le nom du compte du Mac
   s'affiche par-dessus.
 - **Écran de verrouillage animé** (option) : aucune app ne peut dessiner sur l'écran de connexion,
-  mais macOS y joue les fonds « Aerial » (des vidéos). Brume filme sa propre animation en 4K et
-  la range à la place de la vidéo Aerial ; l'original est gardé et remis quand on désactive.
+  mais macOS y joue les fonds « Aerial » (des vidéos). Brume filme sa propre animation en 4K (avec
+  l'encodeur vidéo du Mac, rien à installer) et la range à la place de la vidéo Aerial ; elle
+  sert aussi d'économiseur d'écran. L'original est gardé et remis quand on désactive. Il faut
+  avoir choisi une fois un fond Aerial dans Réglages Système, pour que macOS en télécharge un.
 - **Easter egg** : sur la scène Drones, trace un cercle puis un trait vers le bas avec la souris,
   comme un coup de baguette… 🚂 Un train à vapeur passe sur le viaduc, suivi le jour d'une
   vieille voiture bleue volante, et la nuit de spectres encapuchonnés.

@@ -72,7 +72,8 @@
   /* ---------- Enregistrement en vidéo (pour l'écran de verrouillage) ----------
    * Même scène, même caméra, mais image par image à cadence fixe, sans agrandissement :
    * chaque image (W × H pixels) part vers le processus principal qui l'encode. */
-  async function record({ key, effect, fps = 30, seconds = 30, W, H }) {
+  async function record({ key, effect, fps = 30, seconds = 30, W, H, encode }) {
+    if (encode === 'hevc') return recordHevc({ key, effect, fps, seconds, W, H });
     try {
       const sceneKey = B.PixelScenes[key] ? key : 'cafe';
       view.width = W;
@@ -91,6 +92,62 @@
         await api.recordFrame(img.data.buffer);
       }
       api.recordDone({ frames: n });
+    } catch (err) {
+      api.recordDone({ error: String((err && err.stack) || err) });
+    }
+  }
+
+  /* La même chose, encodée ici même par l'encodeur vidéo matériel du Mac (WebCodecs) :
+   * aucun logiciel à installer. Chaque image (W × H) est agrandie × 9 en pixels nets
+   * (427 × 240 → 3843 × 2160, recadrée en 3840 × 2160, la 4K), encodée en HEVC, puis rangée
+   * dans un fichier vidéo (mp4-muxer). Le fichier part en une fois au processus principal. */
+  async function recordHevc({ key, effect, fps, seconds, W, H }) {
+    try {
+      const OW = 3840;
+      const OH = 2160;
+      const sceneKey = B.PixelScenes[key] ? key : 'cafe';
+      view.width = W;
+      view.height = H;
+      const from = B.Multiplane.from(sceneKey);
+      const wide = Math.round(W * 1.6);
+      const margin = Math.round(W * 0.25);
+      const ext = from === 'right' ? { left: margin, right: wide } : { left: wide, right: margin };
+      const scene = new B.PixelScenes[sceneKey](W, H, { ext });
+      scene.update(0.001, { effect });
+      const cam = new B.Multiplane(scene, sceneKey, effect, W, H, 1, 9);
+      const big = new OffscreenCanvas(OW, OH);
+      const bg = big.getContext('2d');
+      bg.imageSmoothingEnabled = false;
+      const k = OH / H;
+      const ox = Math.floor((OW - W * k) / 2);
+
+      const muxer = new Mp4Muxer.Muxer({
+        target: new Mp4Muxer.ArrayBufferTarget(),
+        video: { codec: 'hevc', width: OW, height: OH, frameRate: fps },
+        fastStart: 'in-memory',
+      });
+      let failure = null;
+      const encoder = new VideoEncoder({
+        output: (chunk, meta) => muxer.addVideoChunk(chunk, meta),
+        error: (e) => (failure = e),
+      });
+      encoder.configure({ codec: 'hvc1.1.6.L153.B0', width: OW, height: OH, bitrate: 16e6, framerate: fps, hardwareAcceleration: 'prefer-hardware', hevc: { format: 'hevc' } });
+
+      const n = Math.round(fps * seconds);
+      for (let i = 0; i < n; i++) {
+        if (failure) throw failure;
+        cam.draw(vg, i ? 1 / fps : 0);
+        bg.drawImage(view, 0, 0, W, H, ox, 0, W * k, H * k);
+        const frame = new VideoFrame(big, { timestamp: Math.round((i * 1e6) / fps), duration: Math.round(1e6 / fps) });
+        encoder.encode(frame, { keyFrame: i % (fps * 2) === 0 });
+        frame.close();
+        while (encoder.encodeQueueSize > 6) await new Promise((r) => encoder.addEventListener('dequeue', r, { once: true }));
+      }
+      await encoder.flush();
+      if (failure) throw failure;
+      encoder.close();
+      muxer.finalize();
+      await api.recordFile(muxer.target.buffer);
     } catch (err) {
       api.recordDone({ error: String((err && err.stack) || err) });
     }

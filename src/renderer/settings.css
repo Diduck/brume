@@ -972,3 +972,8 @@ button {
 .live:not(.on) .live-place {
   display: none;
 }
+
+/* Écran de verrouillage : une action à faire (vidéo Aerial à télécharger…). */
+.sw.warn .sw-line {
+  color: var(--scene);
+}

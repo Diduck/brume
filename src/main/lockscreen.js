@@ -21,24 +21,65 @@ const FFMPEG = ['/opt/homebrew/bin/ffmpeg', '/usr/local/bin/ffmpeg', '/usr/bin/f
 let active = null; // un seul enregistrement à la fois
 
 ipcMain.handle('record:frame', (_e, buf) => {
-  if (!active) return false;
+  if (!active || !active.ff) return false;
   const ok = active.ff.stdin.write(Buffer.from(buf));
   return ok ? true : new Promise((r) => active.ff.stdin.once('drain', () => r(true)));
 });
 ipcMain.on('record:done', (_e, info) => {
   if (!active) return;
   active.info = info;
-  active.ff.stdin.end();
+  if (active.ff) active.ff.stdin.end();
+  else active.finish(info && info.error ? new Error(info.error) : new Error('vidéo vide'));
+});
+// La vidéo encodée par la page (sans ffmpeg) : on l'écrit telle quelle.
+ipcMain.handle('record:file', async (_e, buf) => {
+  if (!active || active.ff) return false;
+  try {
+    await fs.promises.writeFile(active.out, Buffer.from(buf));
+    active.finish(null);
+  } catch (err) {
+    active.finish(err);
+  }
+  return true;
 });
 
+// Il faut une vidéo Aerial déjà téléchargée par le Mac (c'est elle qu'on remplace).
 function available() {
-  return !!FFMPEG && fs.existsSync(path.join(AERIALS, 'videos'));
+  try {
+    return !!targetVideo();
+  } catch {
+    return false;
+  }
 }
 
 // Filme l'animation de la scène et l'encode en vidéo HEVC 4K (pixels agrandis sans flou).
 // W × H : taille logique 16:9 (427 × 240 → × 9 = 3843 × 2160, recadré en 3840 × 2160).
 // outArgs : autre encodage (ex. pour une vidéo de démonstration), à la place de la 4K.
-function render({ key, effect, preload, page, out, W = 427, H = 240, fps = 30, seconds = 30, outArgs = null }) {
+function render(opts) {
+  // La 4K de l'écran de verrouillage est encodée par la page elle-même (encodeur du Mac).
+  // ffmpeg ne sert plus qu'aux autres formats (vidéo de démonstration du README).
+  return opts.outArgs ? renderFfmpeg(opts) : renderHevc(opts);
+}
+
+function renderHevc({ key, effect, preload, page, out, W = 427, H = 240, fps = 30, seconds = 30 }) {
+  if (active) return Promise.reject(new Error('enregistrement déjà en cours'));
+  return new Promise((resolve, reject) => {
+    const win = new BrowserWindow({ show: false, width: W, height: H, webPreferences: { preload, contextIsolation: true, sandbox: true, backgroundThrottling: false } });
+    const safety = setTimeout(() => finish(new Error('enregistrement trop long')), 5 * 60 * 1000);
+    const finish = (e) => {
+      clearTimeout(safety);
+      if (!win.isDestroyed()) win.destroy();
+      active = null;
+      if (e) reject(e);
+      else resolve(out);
+    };
+    active = { ff: null, win, out, info: null, finish };
+    win.webContents.on('did-finish-load', () => win.webContents.send('command', { type: 'record', key, effect, fps, seconds, W, H, encode: 'hevc' }));
+    win.loadFile(page);
+  });
+}
+
+function renderFfmpeg({ key, effect, preload, page, out, W = 427, H = 240, fps = 30, seconds = 30, outArgs = null }) {
   if (!FFMPEG) return Promise.reject(new Error('ffmpeg introuvable'));
   if (active) return Promise.reject(new Error('enregistrement déjà en cours'));
   return new Promise((resolve, reject) => {
@@ -101,6 +142,11 @@ async function showVideo(assetID) {
   await jxa(JXA, { plist: INDEX, assetID });
   await restartAgent();
 }
+// L'économiseur d'écran seulement (le bureau ne bouge pas).
+async function showIdle(assetID) {
+  await jxa(JXA, { plist: INDEX, assetID, idleOnly: true });
+  await restartAgent();
+}
 async function showImage(file) {
   await jxa(JXA, { plist: INDEX, image: file });
   await restartAgent();
@@ -117,4 +163,4 @@ async function restore(backupDir) {
   return true;
 }
 
-module.exports = { available, render, install, restore, showVideo, showImage, targetVideo, AERIALS };
+module.exports = { available, render, install, restore, showVideo, showImage, showIdle, targetVideo, AERIALS };

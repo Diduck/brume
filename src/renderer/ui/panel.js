@@ -634,6 +634,7 @@
       if (this.stkDrag || this.stkTimer) this.settings = { ...this.settings, stickers: mine };
       this.display = st.display;
       this.live = st.live;
+      this.lockState = st.lockState;
       this.sync();
     }
 
@@ -684,6 +685,12 @@
       for (const [key, sw] of Object.entries(this.switchEls)) radio(sw, !!s[key]);
       radio(this.introSwitch, !!s.intro);
       radio(this.lockSwitch, !!s.lockScreen);
+      // Où en est l'écran de verrouillage (film en cours, vidéo Aerial à télécharger…).
+      const W2 = N.wallpaper;
+      const lockMsg = s.lockScreen && { needsAerial: W2.lockNeedsAerial, filming: W2.lockFilming, error: W2.lockError }[this.lockState];
+      const lockLine = this.lockSwitch.querySelector('.sw-line');
+      if (lockLine) lockLine.textContent = lockMsg || W2.lockLine;
+      this.lockSwitch.classList.toggle('warn', !!lockMsg && this.lockState !== 'filming');
 
       // Scènes : la choisie ; « Auto » et « Ville » montrent l'ambiance du moment.
       for (const [key, { item, thumb }] of Object.entries(this.sceneEls)) {
