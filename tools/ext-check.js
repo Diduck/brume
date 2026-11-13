@@ -26,6 +26,7 @@ const LAYERS = {
   drones: ['bg', 'mid', 'fg'],
   toits: ['back', 'mid', 'fore'],
   annecy: ['back', 'mid', 'fore'],
+  planete: ['sky', 'back', 'mid', 'fore'],
 };
 
 app.whenReady().then(async () => {

@@ -116,6 +116,18 @@
     ],
   };
 
+  // « Planète lointaine » : ciel et géante gazeuse (très loin) / rangées de mesas / vallée,
+  // épave et îlots / promontoire. Un lent travelling depuis la droite : la géante glisse
+  // dans le cadre pendant que les plans proches défilent.
+  SPECS.planete = {
+    layers: [{ Z: 9 }, { img: 'back', Z: 4.4 }, { img: 'mid', Z: 2.5 }, { img: 'fore', Z: 1.35 }],
+    from: 'right',
+    path: () => [
+      { t: 0, cz: 3.0, look: [0.25, 0.3], Z: 9 },
+      { t: 3, cz: 2.7, look: [0.5, 0.36], Z: 9 },
+    ],
+  };
+
   /* ---------- Un contexte 2D qui range chaque dessin sur la bonne plaque ----------
    * Les changements d'état (couleur, transparence…) sont mémorisés et appliqués à la
    * plaque qui dessine ; les chemins, découpes et transformations vont à toutes. */

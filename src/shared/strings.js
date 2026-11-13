@@ -46,6 +46,7 @@
       drones: { label: 'Drones', line: 'À l’heure bleue, un drone inspecte un viaduc dans la brume.' },
       toits: { label: 'Sur les toits', line: 'Deux amoureux au bord du toit, sous un ciel rose.' },
       annecy: { label: 'Lac d’Annecy', line: 'Des voiliers sur l’eau turquoise, des parapentes au-dessus des montagnes.' },
+      planete: { label: 'Planète lointaine', line: 'Une exploratrice et son robot regardent se lever une géante annelée.' },
       terrasse: { label: 'Terrasse', line: 'Un lampadaire, un arbre doré, la ville bleue.' },
     },
 
