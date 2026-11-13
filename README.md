@@ -11,10 +11,10 @@
 
 ## En images
 
-**9 scènes en pixel art**, qui changent avec la météo (neige, pluie, orage, cerisiers,
+**10 scènes en pixel art**, qui changent avec la météo (neige, pluie, orage, cerisiers,
 automne, nuit d'été, étoiles filantes) :
 
-<p align="center"><img src="docs/scenes.jpg" width="720" alt="Les scènes : toits, lac d'Annecy, drones, terrasse, ville, café, forêt, mer, chambre"></p>
+<p align="center"><img src="docs/scenes.jpg" width="900" alt="Les scènes : toits, lac d'Annecy, planète lointaine, drones, terrasse, ville, café, forêt, mer, chambre"></p>
 
 **L'animation d'ouverture** : chaque scène peint un monde plus large que l'écran, et la
 caméra le longe jusqu'à s'arrêter pile sur ton fond d'écran (aucun raccord : la dernière
@@ -77,7 +77,7 @@ Brume vit dans la **barre des menus** (icône flocon). Raccourci pause : ⌥⌘B
   quand il ne bouge plus.
 - **Derrière les fenêtres** (par défaut) : rien ne passe devant tes applications, la barre des menus
   ou le Dock. Changer de bureau conserve la neige.
-- **Fonds d'écran animés en pixel art** (option) : Sur les toits, Lac d'Annecy (avec les feux d'artifice de la Fête du lac, la nuit), Drones, Terrasse, Ville, Café,
+- **Fonds d'écran animés en pixel art** (option) : Sur les toits, Lac d'Annecy (avec les feux d'artifice de la Fête du lac, la nuit), Planète lointaine (paysage de SF en vue cinéma), Drones, Terrasse, Ville, Café,
   Forêt, Bord de mer, Chambre — ou **Auto**, qui choisit selon la météo et change de scène au fil
   de la journée. Dans Drones, une pilote guide un drone d'inspection qui scanne le viaduc.
   Décors peints une fois avec un éclairage calculé pixel par pixel, puis des personnages et animaux
