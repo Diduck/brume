@@ -1,7 +1,7 @@
 {
   "name": "brume",
   "productName": "Brume",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "La météo vit sur ton écran : neige, pluie, sakura, lucioles… qui interagissent avec tes vraies fenêtres.",
   "main": "src/main/main.js",
   "author": "Valentin",
@@ -12,7 +12,9 @@
     "icons": "python3 tools/make-icons.py",
     "build": "electron-builder --mac dir --arm64 && node tools/adhoc-sign.js",
     "check": "node --check src/main/main.js",
-    "dist": "npm run build && node tools/make-installer.js"
+    "dist": "node tools/release-signed.js",
+    "dist:adhoc": "npm run build && node tools/make-installer.js",
+    "dist:signed": "BRUME_REQUIRE_SIGNED=1 node tools/release-signed.js"
   },
   "devDependencies": {
     "@electron/asar": "^4.3.1",

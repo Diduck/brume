@@ -33,10 +33,14 @@ fs.writeFileSync(
     'Brume — la météo vit sur ton écran',
     '',
     '1. Glisse Brume dans le dossier Applications.',
-    '2. Brume n’est pas signée par Apple (projet de lycée) : la première fois,',
-    '   fais clic droit sur Brume → Ouvrir → Ouvrir.',
-    '   Si macOS dit que l’app est « endommagée », lance dans le Terminal :',
-    '   xattr -dr com.apple.quarantine /Applications/Brume.app',
+    ...(process.env.BRUME_SIGNED
+      ? ['2. Brume est signée et vérifiée par Apple : double-clique pour l’ouvrir.']
+      : [
+          '2. Brume n’est pas signée par Apple (projet de lycée) : la première fois,',
+          '   fais clic droit sur Brume → Ouvrir → Ouvrir.',
+          '   Si macOS dit que l’app est « endommagée », lance dans le Terminal :',
+          '   xattr -dr com.apple.quarantine /Applications/Brume.app',
+        ]),
     '3. Brume vit dans la barre des menus (le flocon).',
     '',
     'Code source : https://github.com/Diduck/brume',

@@ -40,9 +40,13 @@ Le script télécharge la dernière version, l'installe dans `/Applications` et 
 
 **Ou à la main** : télécharge `Brume-…-arm64.dmg` dans les
 [Releases](https://github.com/Diduck/brume/releases/latest), ouvre-le et glisse Brume dans
-Applications. Brume n'est pas signée par Apple (c'est un projet de lycée) : la première
-fois, fais **clic droit → Ouvrir → Ouvrir**. Si macOS dit que l'app est « endommagée » :
-`xattr -dr com.apple.quarantine /Applications/Brume.app`.
+Applications. Depuis la 1.2.1, l'app et le DMG sont signés (Developer ID) et notarisés
+par Apple : un double-clic suffit.
+
+> **Recompiler Brume soi-même** (l'exercice : décompiler, changer une phrase, recompiler)
+> casse la signature d'Apple, c'est normal. `npm run build` re-signe l'app « ad hoc » pour
+> ton Mac ; `npm run dist` refait le DMG : signé et notarisé si un certificat Developer ID
+> est installé (voir `tools/release-signed.js`), ad hoc sinon.
 
 Mac Apple Silicon (M1 et suivants), macOS 14 ou plus récent. Brume vit dans la **barre des
 menus** (le flocon).
