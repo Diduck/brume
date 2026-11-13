@@ -238,6 +238,135 @@
   };
   for (const k of Object.keys(THEMES)) THEMES[k] = { ...BASE, ...THEMES[k] };
 
+  /* ================= Versions nuit (météo en direct, quand il fait nuit) =================
+   * Chaque temps de jour garde ses conséquences (mer agitée, sable mouillé, éclairs, neige
+   * posée, cerisier en fleurs, arbre roux…) mais sous un ciel de nuit : plus de soleil, le
+   * phare balaie, les lampes et la fenêtre de la maison sont allumées, et la lune et les
+   * étoiles ne se montrent que si le ciel est dégagé. Le sable, les rochers et les arbres
+   * gardent leurs couleurs de jour : la lumière ambiante de la nuit les assombrit, et les
+   * lampes les réchauffent (éclairage peint). Pas de mouettes ni de cerf-volant la nuit.
+   * fireflies et starfall sont déjà des nuits : ils ne changent pas. */
+  const NIGHT = {
+    // Nuit claire et calme : lune haute et son reflet, étoiles, un pêcheur à la lanterne.
+    none: {
+      sky: ['#070b22', '#0e1638', '#18244c', '#24345e', '#38486e'],
+      cloud: ['#0c1230', '#1a2446', '#56658e'],
+      clouds: 0.64,
+      streaks: false,
+      body: { kind: 'moon', x: 0.38, y: -60, r: 8, c: ['#f8f4e6', '#e4dccb', '#b4ad9c'], glow: [200, 210, 245], k: 0.3 },
+      sea: ['#2a3a62', '#172448', '#0f1a3c', '#112440', '#19324a'],
+      crest: '#5e70a8',
+      trough: '#070b20',
+      refl: '#e6ecff',
+      foam: '#eef2ff',
+      swash: '#7c98b0',
+      wet: '#74727e',
+      rock: ['#2e2c3e', '#46445a', '#5e5c74', '#787896'],
+      tree: ['#24402c', '#3a5a3a', '#6a8a72'],
+      ambient: [0.34, 0.39, 0.6],
+      warm: [1, 0.76, 0.46],
+      beam: 0.26,
+      stars: 0.8,
+      props: { castle: true, fisher: true },
+      fisherLamp: true,
+    },
+    // Hiver, la nuit : ciel couvert et bas (pas de lune), la neige garde un peu de lueur,
+    // le bonhomme de neige veille sous la fenêtre allumée.
+    snow: {
+      sky: ['#121828', '#1a2234', '#242c40', '#30384c', '#3e4658'],
+      cloud: ['#10162a', '#20283a', '#4a5468'],
+      body: null,
+      sea: ['#3a4454', '#262e3c', '#1a2230', '#1a2632', '#24343e'],
+      crest: '#5a6672',
+      trough: '#0c1018',
+      refl: null,
+      foam: '#e4eaf2',
+      swash: '#5c707c',
+      wet: '#5c5e64',
+      ambient: [0.52, 0.56, 0.76],
+      warm: [1.05, 0.78, 0.48],
+      beam: 0.3,
+      props: { snowman: true },
+    },
+    // Pluie de nuit : ciel couvert d'encre, mer grise qui moutonne, sable mouillé qui
+    // renvoie les lumières, promeneur sous son parapluie.
+    rain: {
+      sky: ['#080b12', '#0e131c', '#151b25', '#1d2530', '#2a313c'],
+      cloud: ['#06090e', '#121822', '#2a3340'],
+      sea: ['#26303c', '#19222c', '#121a23', '#142129', '#1c2d35'],
+      crest: '#46545f',
+      trough: '#05080d',
+      foam: '#c4ced8',
+      swash: '#4e6672',
+      wet: '#4c4c50',
+      ambient: [0.42, 0.46, 0.6],
+      warm: [1.1, 0.8, 0.48],
+      beam: 0.34,
+      wetShine: 1,
+    },
+    // Orage de nuit : noir d'encre, grosses vagues, les éclairs révèlent la mer.
+    storm: {
+      sky: ['#04060a', '#090c13', '#0f141c', '#161c26', '#212833'],
+      cloud: ['#030508', '#0d1219', '#242d39'],
+      sea: ['#1d2530', '#131a23', '#0c121a', '#0e1820', '#16242c'],
+      crest: '#38464f',
+      trough: '#020407',
+      foam: '#b8c4ce',
+      swash: '#40565f',
+      wet: '#424246',
+      ambient: [0.34, 0.37, 0.52],
+      warm: [1.1, 0.8, 0.48],
+      beam: 0.42,
+      wetShine: 1.3,
+    },
+    // Nuit de printemps : ciel mauve et doux, lune pâle, le cerisier en fleurs sous la lune.
+    sakura: {
+      sky: ['#0c0e2c', '#181a42', '#2a2856', '#433660', '#5e4868'],
+      cloud: ['#14163a', '#28284e', '#6c5c8c'],
+      clouds: 0.62,
+      streaks: false,
+      body: { kind: 'moon', x: 0.55, y: -62, r: 8, c: ['#fff6f4', '#efe0e4', '#c2b0bc'], glow: [250, 215, 235], k: 0.3 },
+      sea: ['#463f72', '#282c5c', '#1a2148', '#1a2a4e', '#243c58'],
+      crest: '#8c8ec4',
+      trough: '#0b0e2c',
+      refl: '#ffe6f0',
+      foam: '#f6f0ff',
+      swash: '#8aa6bc',
+      wet: '#7a6e86',
+      ambient: [0.4, 0.4, 0.62],
+      warm: [1, 0.74, 0.5],
+      beam: 0.24,
+      lamp: true,
+      stars: 0.6,
+      props: { castle: true },
+    },
+    // Nuit d'automne : grosse lune rousse au ras de l'eau, feu de feuilles sur la plage.
+    leaves: {
+      sky: ['#0c0a22', '#181236', '#2a1a40', '#402446', '#5a3446'],
+      cloud: ['#140e26', '#2a1c3a', '#7a4c5a'],
+      clouds: 0.58,
+      streaks: false,
+      body: { kind: 'moon', x: 0.62, y: -30, r: 10, c: ['#ffe4b4', '#f0c68c', '#c4986a'], glow: [255, 180, 110], k: 0.32 },
+      sea: ['#4c3446', '#2c2448', '#19183a', '#19243e', '#20344a'],
+      crest: '#8c6a78',
+      trough: '#0a0a1e',
+      refl: '#ffd49c',
+      foam: '#fff0e0',
+      swash: '#8a98a0',
+      wet: '#7a6268',
+      rock: ['#30263a', '#4a3a4c', '#665264', '#8a6a6e'],
+      ambient: [0.37, 0.34, 0.52],
+      warm: [1.1, 0.72, 0.36],
+      beam: 0.24,
+      stars: 0.5,
+      props: { fire: true },
+    },
+  };
+  const NIGHTS = {};
+  for (const k of Object.keys(NIGHT)) NIGHTS[k] = { ...THEMES[k], ...NIGHT[k], night: true, gulls: null, nightOf: k };
+  // L'ambiance d'un temps, de jour ou de nuit (les nuits déjà nocturnes restent telles quelles).
+  const themeFor = (effect, night) => (night && NIGHTS[effect]) || THEMES[effect] || (night ? NIGHTS.none : THEMES.none);
+
   /* ================= Sprites propres à la scène ================= */
   // Crabe (vu de face, il marche de côté). Deux pas, puis pinces levées (deux images).
   const CRAB = {
@@ -465,6 +594,7 @@
       this.layoutWorld();
       this.t = 0;
       this.effect = null;
+      this.night = false; // version nuit du temps (météo en direct, la nuit)
       this.build('none');
     }
 
@@ -995,9 +1125,11 @@
     }
 
     /* ================= Construction complète (au départ et à chaque changement de météo) ================= */
-    build(effect) {
-      const T = (this.T = THEMES[effect] || THEMES.none);
+    // night : version nuit de ce temps (voir NIGHT).
+    build(effect, night = false) {
+      const T = (this.T = themeFor(effect, night));
       this.effect = effect;
+      this.night = night;
       const { W, H, L } = this;
       const cv = (a) => a.map(C);
       this.k = {
@@ -1058,6 +1190,7 @@
       light(mid, this.lights, amb, T.warm, null, this.lightsExt);
       light(front, this.lights, amb, T.warm, null, this.lightsExt);
       for (const e of this.emissive) e.r.rect(e.x, e.y, e.w, e.h, e.c);
+      if (T.nightOf) this.paintNightShine(back);
       this.back = back.toCanvas();
       this.mid = mid.toCanvas();
       this.front = front.toCanvas();
@@ -1069,6 +1202,7 @@
         halos.push({ x: this.lantern.x, y: this.lantern.y, r: 12, c: [255, 228, 160], k: 0.45 });
         halos.push({ x: this.pierLamp.x, y: this.pierLamp.y, r: 9, c: [255, 210, 140], k: 0.4 });
         if (T.night) halos.push({ x: this.houseWin.x, y: this.houseWin.y, r: 6, c: [255, 200, 120], k: 0.35 });
+        if (this.fisherLamp) halos.push({ x: this.fisherLamp.x, y: this.fisherLamp.y, r: 8, c: [255, 200, 120], k: 0.45 });
       }
       const { X0, WW } = this;
       this.halo = haloW(X0, WW, H, W, halos);
@@ -1079,6 +1213,76 @@
 
       this.makeSprites();
       this.resetLife();
+    }
+
+    // Versions nuit : la lampe du ponton se reflète sur le sable mouillé ; sous la pluie et
+    // l'orage, le sable luit et des flaques renvoient le ciel et les lumières. Peint après
+    // l'éclairage (ce sont des reflets de lumière). Placé en x de la scène : le centre est le
+    // même avec ou sans monde élargi (les flaques hors du cadre sont peintes cadre verrouillé).
+    paintNightShine(r) {
+      const { W, H, L, T } = this;
+      const K = this.k;
+      const warm = C('#ffd48a');
+      const wetH = L.wet1 - L.shore;
+      const lx = L.pierX1 - 2;
+      // Prolongement de la colonne de reflets de la lampe sur le sable mouillé.
+      if (T.lamp) {
+        for (let y = L.shore + 1; y < L.wet1; y++) {
+          const tw = (y - L.shore) / wetH;
+          const bw = 4 + tw * 2;
+          for (let x = Math.floor(lx - bw); x <= Math.ceil(lx + bw); x++) {
+            const p = 1 - Math.abs(x - lx) / bw;
+            if (p > 0 && hash(x, y, 141) < p * (T.wetShine ? 0.75 : 0.45) * (1 - tw * 0.7)) r.tint(x, y, warm, 0.5 * p + 0.15);
+          }
+        }
+      }
+      if (!T.wetShine) return;
+      const k = T.wetShine;
+      // Le sable mouillé luit : reflets froids du ciel couvert, en tirets horizontaux.
+      const sheen = mix(K.sky[K.sky.length - 1], [160, 175, 195], 0.35);
+      for (let y = L.shore + 1; y < L.wet1 + 6; y++) {
+        const tw = (y - L.shore) / (wetH + 6);
+        for (let x = this.X0; x < this.X1; x++) if (hash(x >> 2, y, 143) > 0.86 - (1 - tw) * 0.08 && hash(x, y, 144) > 0.3) r.tint(x, y, sheen, 0.22 * k * (1 - tw));
+      }
+      // Flaques sur la plage : elles reflètent le ciel, liseré clair sur le bord éloigné.
+      const sky = mix(K.sky[K.sky.length - 1], [8, 10, 16], 0.2);
+      const sky2 = mix(K.sky[K.sky.length - 1], [120, 132, 150], 0.25);
+      const rim = mix(K.sky[K.sky.length - 1], [200, 210, 225], 0.5);
+      const mud = mix(K.sand[3], [0, 0, 0], 0.55);
+      const puddle = (cx, cy, rx, ry) => {
+        for (let y = cy - ry; y <= cy + ry; y++) {
+          for (let x = cx - rx; x <= cx + rx; x++) {
+            const q = ((x - cx) / rx) ** 2 + ((y - cy) / (ry + 0.5)) ** 2;
+            if (q > 1) continue;
+            // Ciel reflété (plus clair vers le bas : on y voit l'horizon), bord de sable
+            // sombre côté proche, liseré clair côté éloigné, et une étincelle.
+            let c = y > cy ? sky2 : sky;
+            if (y === cy - ry && q > 0.3) c = rim;
+            else if (y === cy + ry && q > 0.45) c = mud;
+            else if (hash(x >> 1, y, 147) > 0.78) c = mix(c, rim, 0.45);
+            if (x === cx - (rx >> 1) && y === cy) c = C('#dfe6f0');
+            // Reflet chaud quand la flaque est sous une lumière.
+            const d = Math.abs(x - lx);
+            if (d < 6 && hash(x, y, 148) < 0.5) c = mix(c, warm, 0.45);
+            r.set(x, y, c);
+          }
+        }
+      };
+      const step = 26;
+      for (let cell = Math.floor(this.X0 / step); cell * step < this.X1; cell++) {
+        if (hash(cell, 1, 151) < 0.3) continue;
+        const cx = cell * step + Math.floor(hash(cell, 2, 152) * (step - 12)) + 6;
+        const cy = L.wet1 + 4 + Math.floor(hash(cell, 3, 153) * 34);
+        const rx = 4 + Math.floor(hash(cell, 4, 154) * 7);
+        const ry = 1 + (hash(cell, 5, 155) < 0.4 ? 1 : 0);
+        const inside = cx >= 0 && cx < W;
+        if (!inside && !this.ext) continue;
+        // Pas de flaque sous le château de sable.
+        if (cy > L.castleY - 20 && Math.abs(cx - L.castleX) < 30) continue;
+        if (!inside) r.lock(0, W);
+        puddle(cx, cy, rx, ry);
+        r.lock();
+      }
     }
 
     makeSprites() {
@@ -1470,6 +1674,29 @@
           }
         }
       }
+      // La nuit (versions nuit) : colonnes de reflets chauds sous la lampe du ponton et
+      // sous la lanterne du pêcheur, qui ondulent avec la mer.
+      if (this.T.nightOf && this.T.lamp) {
+        const warm = C('#ffd890');
+        const pale = C('#ffeccc');
+        const cols = [[L.pierX1 - 2, 1]];
+        if (this.T.fisherLamp) cols.push([L.pierX1 - 20, 0.6]);
+        for (const [lx, k] of cols) {
+          const j0 = L.pierY + 3 - L.hz;
+          for (let j = j0; j < seaH; j++) {
+            const u = (j - j0) / Math.max(1, seaH - j0);
+            const bw = 1.2 + u * 2.8 * k;
+            const fade = (1 - u * 0.75) * k;
+            for (let x = Math.floor(lx - bw); x <= Math.ceil(lx + bw); x++) {
+              const p = 1 - Math.abs(x - lx) / bw;
+              if (p <= 0) continue;
+              const n2 = noise(x * 0.25, j * 1.3 + 3, 69);
+              if (n2 > 0.64 - p * 0.3) r.set(x - X0 + 4, j, p > 0.65 && u < 0.5 ? pale : warm, Math.round(215 * fade));
+              else if (p > 0.4 && bayer(x, j) < p * 0.35) r.set(x - X0 + 4, j, warm, Math.round(80 * fade));
+            }
+          }
+        }
+      }
       return r;
     }
 
@@ -1770,6 +1997,23 @@
         this.emissive.push({ r, x: lx - 1, y: py - 16, w: 3, h: 2, c: C('#ffe2a0') });
         this.lights.push({ x: lx, y: py - 14, r: 12, k: 0.5 });
       }
+      // Nuit claire : le pêcheur a posé sa lanterne à côté de lui sur le ponton.
+      this.fisherLamp = null;
+      if (T.fisherLamp) {
+        const fx = x1 - 20;
+        const dk = C('#2a2420');
+        r.set(fx, py - 7, dk); // anse
+        r.rect(fx - 1, py - 6, 3, 1, dk);
+        r.set(fx - 1, py - 5, dk);
+        r.set(fx + 1, py - 5, dk);
+        r.set(fx - 1, py - 4, dk);
+        r.set(fx + 1, py - 4, dk);
+        r.rect(fx - 1, py - 3, 3, 1, dk);
+        r.rect(fx - 2, py - 2, 5, 1, mix(dk, [0, 0, 0], 0.3)); // ombre sur les planches
+        this.emissive.push({ r, x: fx, y: py - 5, w: 1, h: 2, c: C('#ffe6a0') });
+        this.lights.push({ x: fx, y: py - 4, r: 10, k: 0.55 });
+        this.fisherLamp = { x: fx, y: py - 4 };
+      }
     }
 
     /* ================= Premier plan : dunes, parasol, château, feu ================= */
@@ -1994,7 +2238,14 @@
     /* ================= Vie de la scène ================= */
     update(dt, ctx) {
       const eff = (ctx && ctx.effect) || 'none';
-      if (eff !== this.effect) this.build(eff);
+      // night absent (caméra d'ouverture) : on garde l'état courant.
+      const night = ctx && 'night' in ctx ? !!ctx.night : this.night;
+      if (eff !== this.effect) this.build(eff, night);
+      else if (night !== this.night) {
+        // Même ambiance (temps déjà nocturne) : rien à repeindre.
+        if (themeFor(eff, night) === this.T) this.night = night;
+        else this.build(eff, night);
+      }
       const { W, L, T } = this;
       this.t += dt;
       const t = this.t;

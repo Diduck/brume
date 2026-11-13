@@ -92,7 +92,7 @@
       return;
     }
     if (pixelScene) {
-      pixelScene.update(dt, { effect: host.effectName });
+      pixelScene.update(dt, { effect: host.effectName, night: !!host.settings.night });
       pixelScene.draw(pg);
       pixelCanvas.style.opacity = '1';
       canvas.style.opacity = '0';
@@ -141,7 +141,7 @@
     const key = P.resolve(host.settings.wallpaper, host.effectName);
     if (key && B.PixelScenes[key]) {
       ensurePixelScene(key);
-      pixelScene.update(0.001, { effect: host.effectName }); // décor du temps actif, même en pause
+      pixelScene.update(0.001, { effect: host.effectName, night: !!host.settings.night }); // décor du temps actif, même en pause
       pixelScene.draw(pg);
       return sendStill(pixelCanvas);
     }

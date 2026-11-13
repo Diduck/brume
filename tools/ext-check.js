@@ -11,7 +11,10 @@ const { app, BrowserWindow } = require('electron');
 const fs = require('node:fs');
 const path = require('node:path');
 
-const [key = 'cafe', effect = 'none', outDir = '/tmp/brume-ext'] = process.argv.slice(2);
+// Temps « rain:nuit » = la version nuit de la pluie (météo en direct, la nuit).
+const [key = 'cafe', fx = 'none', outDir = '/tmp/brume-ext'] = process.argv.slice(2);
+const [effect, nightArg] = fx.split(':');
+const night = nightArg === 'nuit';
 const W = 360;
 const H = 225;
 
@@ -39,12 +42,13 @@ app.whenReady().then(async () => {
     const B = window.Brume;
     const key = ${JSON.stringify(key)};
     const effect = ${JSON.stringify(effect)};
+    const night = ${night};
     const W = ${W}, H = ${H};
     const EL = Math.round(W * 1.6), ER = Math.round(W * 0.25);
     // Même hasard pour les deux constructions.
     const seeded = (seed) => { let s = seed >>> 0; return () => { s = (s + 0x6d2b79f5) >>> 0; let t = s; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; };
     const real = Math.random;
-    const make = (opts) => { Math.random = seeded(1234); const s = new B.PixelScenes[key](W, H, opts); s.update(0.001, { effect }); Math.random = real; return s; };
+    const make = (opts) => { Math.random = seeded(1234); const s = new B.PixelScenes[key](W, H, opts); s.update(0.001, { effect, night }); Math.random = real; return s; };
     const A = make(undefined);
     const X = make({ ext: { left: EL, right: ER } });
     const out = { supported: !!(X.extL || X.extR), extL: X.extL, extR: X.extR, layers: {} };
@@ -69,14 +73,14 @@ app.whenReady().then(async () => {
     c.width = W + (X.extL || 0) + (X.extR || 0); c.height = H;
     const g = c.getContext('2d');
     g.translate(X.extL || 0, 0);
-    for (let i = 0; i < 40; i++) X.update(0.1, { effect });
+    for (let i = 0; i < 40; i++) X.update(0.1, { effect, night });
     X.draw(g);
     out.png = c.toDataURL('image/png');
     return out;
   })()`);
   const png = res.png;
   delete res.png;
-  const file = path.join(outDir, `${key}-${effect}-monde.png`);
+  const file = path.join(outDir, `${key}-${effect}${night ? '-nuit' : ''}-monde.png`);
   fs.writeFileSync(file, Buffer.from(png.split(',')[1], 'base64'));
   console.log(JSON.stringify(res, null, 2));
   console.log(`monde élargi : ${file}`);

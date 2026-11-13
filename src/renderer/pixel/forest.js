@@ -163,6 +163,110 @@
     lightning: true,
   };
 
+  /* ================= Les nuits (météo en direct) =================
+   * Quand il fait nuit chez l'utilisateur, chaque temps a sa version nocturne : elle garde
+   * les conséquences du temps (neige et lac gelé, pluie sur le lac et bâche, orage,
+   * cerisiers en fleurs, feuillus roux) sous l'éclairage des nuits de la scène (lucioles,
+   * étoiles filantes) : ciel noir bleuté, montagnes sombres, le feu de camp, la tente et
+   * la cabane allumés. Lune et étoiles seulement par ciel dégagé ; pas d'étoile filante
+   * (c'est le temps « starfall »). fireflies et starfall sont déjà des nuits.
+   * leafNight : les feuillages colorés s'éteignent (part de mélange vers la nuit) ;
+   * iceNight : idem pour la glace du lac. */
+  const NIGHT_GROUND = ['#182a1a', '#223a22', '#2e4e2c'];
+  const NIGHT_LOOKS = {
+    // Nuit calme et claire : lune, étoiles, un voile de Voie lactée, quelques lucioles.
+    none: {
+      ...NIGHT_MTN,
+      sky: ['#050a19', '#0a152b', '#122342', '#1c3252', '#283e5c'],
+      stars: 0.95,
+      milky: 0.35,
+      ground: NIGHT_GROUND,
+      fireflies: 6,
+      mist: '#3e4a66',
+      water: '#101c32',
+      noShoot: true,
+    },
+    // Nuit de printemps : ciel mauve, cerisiers pâles sous la lune, fleurs dans l'herbe.
+    sakura: {
+      ...NIGHT_MTN,
+      sky: ['#07081a', '#0f112e', '#1a1b42', '#2a2652', '#3a305c'],
+      stars: 0.9,
+      milky: 0.3,
+      decid: 'sakura',
+      leafNight: 0.42,
+      flowers: true,
+      ground: NIGHT_GROUND,
+      fireflies: 8,
+      mist: '#44406a',
+      water: '#111a34',
+      noShoot: true,
+    },
+    // Nuit d'automne : feuillus roux éteints, feuilles mortes au sol, horizon un peu ambré.
+    leaves: {
+      ...NIGHT_MTN,
+      sky: ['#070816', '#100f24', '#1b1934', '#2a2340', '#3a2c48'],
+      stars: 0.9,
+      milky: 0.3,
+      decid: 'autumn',
+      leafNight: 0.45,
+      litter: true,
+      ground: ['#1e1e14', '#2a2818', '#383420'],
+      reed: ['#4a4422', '#6e6230', '#3a2414'],
+      fireflies: 0,
+      mist: '#3e3e5a',
+      water: '#10162a',
+      noShoot: true,
+    },
+    // Pluie de nuit : nuages bas et noirs, lac piqueté de ronds, bâche au-dessus du campeur.
+    rain: {
+      ...LOOKS.rain,
+      sky: ['#05080d', '#0a0f15', '#10161d', '#161e27', '#1d2631'],
+      cloud: ['#0b1016', '#131a22', '#1c242e'],
+      far: ['#222a35', '#29323d', '#1b222c'],
+      mid: ['#161d26', '#1c242e', '#121820'],
+      snowcap: ['#38414c', '#444e5a', '#2e3742'],
+      hill: '#0b1115',
+      pine: ['#091114', '#0f1a1d', '#182628', '#140e0c'],
+      farPine: ['#10161c', '#161e26'],
+      ground: ['#142014', '#1c2c1a', '#263a22'],
+      water: '#0d141e',
+      mist: '#2c3440',
+      ambient: [0.44, 0.48, 0.58],
+    },
+    // Neige de nuit : ciel couvert et bas, tout est blanc bleuté, lac gelé dans l'ombre.
+    snow: {
+      ...LOOKS.snow,
+      sky: ['#0a0f1a', '#101828', '#172236', '#1e2b41', '#28354c'],
+      stars: 0,
+      moon: false,
+      clouds: 'overcast',
+      cloud: ['#121a28', '#1a2434', '#243042'],
+      far: ['#3a4664', '#485474', '#2e3854'],
+      mid: ['#283250', '#333f60', '#202842'],
+      snowcap: ['#58648a', '#7684a6', '#4a5676'],
+      farFade: 0.3,
+      hill: '#121a28',
+      pineSnow: ['#6a7896', '#9aa8c4'],
+      farPine: ['#1c2840', '#56668a'],
+      ground: ['#5c6a8a', '#72809e', '#8e9cb8'],
+      water: '#0c1628',
+      mist: '#4a5676',
+      ambient: [0.54, 0.6, 0.8],
+      iceNight: 0.5,
+    },
+  };
+  // Orage de nuit : encore plus noir ; seuls les éclairs révèlent les montagnes.
+  NIGHT_LOOKS.storm = {
+    ...NIGHT_LOOKS.rain,
+    sky: ['#030508', '#070a0f', '#0b1015', '#11161d', '#171d25'],
+    cloud: ['#080b10', '#0e1318', '#161c23'],
+    ambient: [0.4, 0.44, 0.54],
+    ripples: 32,
+    lightning: true,
+  };
+  // Teinte de nuit vers laquelle s'éteignent les couleurs vives (feuillages, glace).
+  const NIGHT_TINT = [10, 14, 30];
+
   /* ================= Personnages et animaux ================= */
 
   // Campeur assis sur une bûche, tourné vers le feu (à droite) : peint par B.People
@@ -683,6 +787,7 @@
       this.fast = PXC.fastTest();
       this.sprites = { camper: null, deer: deerSprites(), fox: foxSprites(), owl: owlSprites(), doe: deerSprites(true), boat: null };
       this.effect = null;
+      this.night = false; // version nuit du temps (météo en direct, la nuit)
       this.t = 0;
       this.initLife();
     }
@@ -781,10 +886,13 @@
     }
 
     /* ---------- Décor (repeint quand la météo change) ---------- */
-    build(effect) {
+    // night : version nuit du temps (fireflies et starfall sont déjà des nuits).
+    build(effect, night = this.night) {
       const t0 = performance.now();
       this.effect = effect;
-      const lk = (this.look = { ...BASE, ...(LOOKS[effect] || {}) });
+      this.night = !!night;
+      const nl = this.night ? NIGHT_LOOKS[effect] : null;
+      const lk = (this.look = { ...BASE, ...(nl || LOOKS[effect] || {}) });
       this.bg = this.paintBack(lk);
       this.ground = this.paintGround(lk);
       this.front = this.paintFront(lk);
@@ -1099,6 +1207,11 @@
     }
 
     leafPalette(kind, h) {
+      const pal = this.leafPaletteDay(kind, h);
+      const k = this.look && this.look.leafNight;
+      return k ? pal.map((c) => mix(c, NIGHT_TINT, k)) : pal;
+    }
+    leafPaletteDay(kind, h) {
       if (kind === 'sakura') {
         const pinks = [
           ['#a8577a', '#e08aac', '#f8c4d6', '#fff0f4'],
@@ -1146,10 +1259,12 @@
       lightW(r, [{ x: L.fireX, y: L.fireY - 8, r: 34, k: 0.6, sy: 2.2 }], [1, 1, 1], [0.45, 0.22, 0.04], (x, y) => y >= L.lakeY && y < L.shoreW[x - X0] + 2);
     }
 
-    paintIce(r) {
+    paintIce(r, lk) {
       const { L, X0, X1 } = this;
-      const ice = [C('#6e83a2'), C('#8ea2be'), C('#b6c6da'), C('#d6e0ee')];
-      const crack = C('#4a5e7c');
+      // (La nuit, la glace s'éteint vers le bleu de la nuit.)
+      const dim = (c) => (lk && lk.iceNight ? mix(C(c), NIGHT_TINT, lk.iceNight) : C(c));
+      const ice = [dim('#6e83a2'), dim('#8ea2be'), dim('#b6c6da'), dim('#d6e0ee')];
+      const crack = dim('#4a5e7c');
       for (let x = X0; x < X1; x++) {
         const edge = L.openY1 + Math.round((noise(x * 0.05, 2, 71) - 0.5) * 10);
         const farEdge = L.lakeY + 2 + Math.round(noise(x * 0.08, 5, 72) * 3);
@@ -1343,6 +1458,7 @@
     // Feuillage des bouleaux selon la saison (null : branches nues).
     birchLeaf(lk) {
       if (lk.pineSnow) return null;
+      if (lk.decid === 'autumn' && lk.leafNight) return ['#8a5a14', '#c8901e', '#ecc040'].map((c) => mix(C(c), NIGHT_TINT, lk.leafNight));
       if (lk.decid === 'autumn') return ['#8a5a14', '#c8901e', '#ecc040'].map(C);
       if (lk.decid === 'sakura') return ['#2e5a26', '#4e8a34', '#7ab84a'].map(C);
       return ['#22361e', '#34502a', '#4e6e34'].map(C);
@@ -2031,7 +2147,9 @@
 
     update(dt, ctx) {
       const effect = (ctx && ctx.effect) || 'none';
-      if (effect !== this.effect) this.build(effect);
+      // Sans « night » dans le contexte (caméra d'ouverture), on garde l'état courant.
+      const night = ctx && 'night' in ctx ? !!ctx.night : this.night;
+      if (effect !== this.effect || night !== this.night) this.build(effect, night);
       const { W, L } = this;
       const lk = this.look;
       this.t += dt;
@@ -2121,7 +2239,7 @@
       }
 
       // Étoile filante.
-      if (lk.stars > 0 && lk.clouds !== 'overcast') {
+      if (lk.stars > 0 && lk.clouds !== 'overcast' && !lk.noShoot) {
         this.nextShoot -= dt;
         if (!this.shoot && this.nextShoot <= 0) {
           const dir = Math.random() < 0.5 ? -1 : 1;
@@ -2326,7 +2444,7 @@
 
     /* ---------- Dessin d'une image ---------- */
     draw(g) {
-      if (!this.bg) this.build('none');
+      if (!this.bg) this.build('none', this.night);
       const { W, H, L } = this;
       const t = this.t;
       const lk = this.look;

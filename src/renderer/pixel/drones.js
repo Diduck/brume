@@ -540,7 +540,138 @@
   const DECID = {
     sakura: [['#4e4554', '#625466', '#786676', '#8c7888', '#262224'], ['#524656', '#665868', '#7c6a7a', '#907c8c', '#262224']],
     autumn: [['#46362e', '#584234', '#6a503c', '#7a5c44', '#24201e'], ['#423a30', '#534836', '#65583e', '#756646', '#24201e']],
+    // La nuit : les mêmes feuillus au clair de lune (fleurs pâles bleutées, roux éteint).
+    sakuraNuit: [['#2a2434', '#383046', '#4a3e58', '#5e4c6a', '#120f12'], ['#2c2434', '#3c3248', '#4e4258', '#62506c', '#120f12']],
+    autumnNuit: [['#261c18', '#33251c', '#423022', '#4e3826', '#100e0c'], ['#231e18', '#2f281c', '#3c3222', '#483c28', '#100e0c']],
   };
+
+  /* ================= Les nuits (météo en direct) =================
+   * Quand il fait nuit chez l'utilisateur, chaque temps a sa version nocturne : elle garde
+   * les conséquences du temps (neige posée, sol mouillé et flaques, orage, cerisiers en
+   * fleurs, feuillus roux) mais sous l'éclairage des nuits de la scène (lucioles, étoiles
+   * filantes) : ciel sombre, lampes du viaduc et fenêtres du village allumées, écran de la
+   * station qui éclaire le sol. Lune et étoiles seulement par ciel dégagé.
+   * (fireflies et starfall sont déjà des nuits : ils ne changent pas.) */
+  // Nuit sous un ciel couvert (pluie, orage) : plafond bas, pas de lune ni d'étoiles.
+  const NIGHT_WET = {
+    night: true,
+    glow: 0,
+    stars: 0,
+    milky: 0,
+    moon: false,
+    far: ['#222a37', '#29313e', '#1c232f'],
+    near: ['#19202b', '#1f2631', '#151b25'],
+    snowcap: ['#303945', '#38414d', '#2a323e'],
+    valley: ['#141b20', '#182025', '#11171c'],
+    river: '#2e3846',
+    house: ['#1a1f28', '#282d38'],
+    lit: 0.62,
+    hill: ['#11181a', '#151d1f', '#0d1416'],
+    pine: ['#0a1012', '#0e1517', '#141c1f', '#0c0a0a'],
+    concrete: ['#363b45', '#454a54', '#2b3038', '#21252c'],
+    lamps: 1,
+    ground: ['#0d1312', '#111816', '#161f1c', '#23302a'],
+    dirt: ['#181716', '#201e1b'],
+    grass: '#27342a',
+    rock: ['#13171a', '#1a1f23', '#262c32'],
+    pilotDim: 0.32,
+    birds: false,
+    mapper: false,
+    glints: true, // les flaques reflètent l'écran de la station et les lampes
+  };
+  const NIGHT_LOOKS = {
+    // Nuit calme et claire : lune, étoiles, une pointe de Voie lactée ; des chauves-souris
+    // chassent autour des lampes du viaduc (les oiseaux dorment).
+    none: {
+      ...NIGHT,
+      sky: ['#080d1d', '#0e1529', '#151e35', '#1c2741', '#24304b', '#2c3850'],
+      stars: 0.85,
+      milky: 0.25,
+      bats: true,
+    },
+    // Nuit de printemps : les cerisiers fleuris pâlissent sous la lune, ciel un peu mauve.
+    sakura: {
+      ...NIGHT,
+      sky: ['#0a0b1f', '#11122b', '#191a37', '#221f42', '#2b2649', '#332c4e'],
+      glowC: '#5a4a74',
+      stars: 0.8,
+      milky: 0.18,
+      decid: 'sakuraNuit',
+      ground: ['#0f1615', '#141c1a', '#19241f', '#29372e'],
+      grass: '#2f3e30',
+      bats: true,
+    },
+    // Nuit d'automne : feuillus roux éteints, horizon un peu ambré (le village).
+    leaves: {
+      ...NIGHT,
+      sky: ['#0a0b18', '#111222', '#19192d', '#221f35', '#2c263b', '#352c3f'],
+      glowC: '#5e4a4a',
+      stars: 0.8,
+      milky: 0.18,
+      decid: 'autumnNuit',
+      ground: ['#121310', '#181914', '#1f2019', '#302e22'],
+      grass: '#38331f',
+      bats: true,
+    },
+    // Pluie de nuit : plafond bas à peine éclairé, brume sombre, sol mouillé.
+    rain: {
+      ...LOOKS.rain,
+      ...NIGHT_WET,
+      sky: ['#080b10', '#0c1016', '#11161d', '#161c24', '#1b222b', '#212831'],
+      cloud: ['#0e1218', '#151a21', '#1d232c'],
+      mist: '#2b323c',
+      mistK: 0.8,
+    },
+    // Neige de nuit : ciel couvert un peu laiteux (la neige renvoie la lumière du village),
+    // tout est blanchi mais bleuté, lampes et fenêtres allumées.
+    snow: {
+      ...LOOKS.snow,
+      night: true,
+      sky: ['#151a26', '#1a202e', '#202736', '#272e3f', '#2e3647', '#363e4e'],
+      glow: 0,
+      cloud: ['#171c28', '#1e2431', '#262d3b'],
+      far: ['#363e50', '#434c5f', '#2e3647'],
+      farFade: 0.4,
+      near: ['#2f3747', '#394253', '#272f3e'],
+      nearFade: 0.18,
+      snowcap: ['#4e586c', '#5e687c', '#444e62'],
+      valley: ['#4a5264', '#535b6d', '#41495b'],
+      river: '#262e3c',
+      house: ['#20242c', '#5c6474'],
+      lit: 0.62,
+      mist: '#454d60',
+      mistK: 0.55,
+      hill: ['#40485a', '#4a5264', '#363e4f'],
+      pine: ['#181e27', '#1e242d', '#262c37', '#121012'],
+      pineSnow: ['#56607a', '#6c768e'],
+      concrete: ['#474c57', '#565b66', '#3a3f49', '#2e323b'],
+      lamps: 1,
+      ground: ['#465064', '#525c70', '#5e687c', '#6e788c'],
+      dirt: ['#33312e', '#3d3a36'],
+      grass: '#3a3e3c',
+      rock: ['#1d2127', '#292e35', '#69738a'],
+      snowNight: '#525c72', // la neige posée (toits, viaduc) prend la couleur de la nuit
+      pilotDim: 0.28,
+      mapper: false,
+    },
+  };
+  // Orage de nuit : encore plus noir ; les éclairs illuminent tout.
+  NIGHT_LOOKS.storm = {
+    ...LOOKS.storm,
+    ...NIGHT_WET,
+    sky: ['#05070b', '#090c11', '#0d1117', '#12171e', '#171d25', '#1c232c'],
+    cloud: ['#090c11', '#0f1318', '#171c23'],
+    far: ['#1c232e', '#222934', '#171d27'],
+    near: ['#141a23', '#192029', '#10151d'],
+    mist: '#232a33',
+    mistK: 0.8,
+    pilotDim: 0.36,
+  };
+  // La neige posée (couleurs fixes du dessin) : bleuie la nuit, telle quelle le jour.
+  const snowCol = (lk, hexc) => (lk.snowNight ? mix(C(hexc), C(lk.snowNight), 0.55) : C(hexc));
+
+  // Chauve-souris (3 pixels de large, deux battements d'ailes).
+  const BAT = [['k.k', '.k.'], ['...', 'kkk']];
 
   /* ================= La scène ================= */
   class Drones {
@@ -556,6 +687,7 @@
       this.WW = this.X1 - this.X0;
       this.t = 0;
       this.effect = null;
+      this.night = false; // version nuit du temps (météo en direct, la nuit)
       this.bg = null;
       this.layout();
       // Le pad : point où se posent les patins du drone.
@@ -720,9 +852,12 @@
     }
 
     /* ================= Peinture du décor ================= */
-    build(effect) {
+    // night : version nuit du temps (fireflies et starfall sont déjà des nuits).
+    build(effect, night = this.night) {
       this.effect = effect;
-      const lk = (this.lk = { ...BASE, ...(LOOKS[effect] || {}) });
+      this.night = !!night;
+      const nl = this.night ? NIGHT_LOOKS[effect] : null;
+      const lk = (this.lk = { ...BASE, ...(nl || LOOKS[effect] || {}) });
       const { W, H } = this;
       this.halos = [];
       this.twinkles = [];
@@ -736,6 +871,7 @@
       this.makePilot(lk);
       this.makeFlies(lk);
       this.makeExtSprites(lk);
+      this.makeBats(lk);
       // Orage : si le drone volait, il rentre tout de suite.
       const d = this.insp;
       if (lk.storm && (d.phase === 'go' || d.phase === 'scan')) {
@@ -787,6 +923,32 @@
         upR: sprite(DEER.up, pal, true),
         downR: sprite(DEER.down, pal, true),
       };
+    }
+
+    // Nuit claire : des chauves-souris chassent les papillons de nuit autour des lampes du
+    // viaduc ; une autre passe devant la lune. (Monde élargi : d'autres au-dessus de la
+    // lanterne de la cabane et de la lampe du tunnel.)
+    makeBats(lk) {
+      this.bats = [];
+      if (!lk.bats) return;
+      const { W, L } = this;
+      const R = rng(515);
+      const ly = L.deckY - 16;
+      // [centre x, centre y, rayon x, rayon y, nombre]
+      const homes = [
+        [94, ly, 9, 5, 2],
+        [229, ly - 3, 8, 5, 1],
+        [L.moon.x - 14, L.moon.y + 4, 26, 7, 1],
+      ];
+      if (this.lantern) homes.push([this.lantern.x, this.lantern.y - 12, 8, 4, 2]);
+      if (this.hasPortal) homes.push([L.portalX + 9, L.deckY - 26, 9, 5, 1]);
+      if (this.extL) homes.push([-Math.round(W * 0.4), ly - 6, 12, 6, 2]);
+      for (const [cx, cy, rx, ry, n] of homes) {
+        for (let k = 0; k < n; k++) {
+          this.bats.push({ cx, cy, rx: rx * (0.7 + R() * 0.5), ry: ry * (0.7 + R() * 0.5), a: 0.9 + R() * 0.7, b: 1.6 + R() * 1.2, p: R() * 6.28, f: R() * 2 });
+        }
+      }
+      if (!this.batSpr) this.batSpr = BAT.map((rows) => sprite(rows, { k: '#05070c' }));
     }
 
     /* ---------- Fond : ciel, montagnes, vallée lointaine ---------- */
@@ -1113,7 +1275,7 @@
           put(px + dx, L.springY, dx > L.hwTop - 1 ? K[2] : K[1]);
           put(px + dx, L.springY + 1, dx > L.hwTop - 1 ? K[3] : K[0]);
         }
-        if (lk.snow) for (let dx = -L.hwTop - 1; dx <= L.hwTop + 1; dx++) put(px + dx, L.springY - 1, C('#d0d6de'));
+        if (lk.snow) for (let dx = -L.hwTop - 1; dx <= L.hwTop + 1; dx++) put(px + dx, L.springY - 1, snowCol(lk, '#d0d6de'));
       }
       if (this.extL || this.extR) this.paintMidExt(r, lk, K, put);
       this.paintHills(r, lk);
@@ -1155,7 +1317,7 @@
       const o = this.extL;
       const top = L.deckY;
       const mist = C(lk.mist);
-      const snowC = C('#d0d6de');
+      const snowC = snowCol(lk, '#d0d6de');
       // Culées : massifs de béton à redans, qui s'enfoncent dans la pente.
       const abut = (x0, dir) => {
         for (let i = 0; i < L.abW; i++) {
@@ -1267,7 +1429,7 @@
               c = y === archY ? mix(K[3], K[2], 0.3) : mix(mix(K[3], dark, 0.6), dark, depth);
             }
           }
-          if (lk.snow && y === yt) c = C('#d6dbe2');
+          if (lk.snow && y === yt) c = snowCol(lk, '#d6dbe2');
           put(x, y, c);
         }
       }
@@ -1387,7 +1549,7 @@
       const tieC = f(mix(C(lk.dirt[0]), K[3], 0.5));
       for (let x = X0; x < X1; x++) {
         if (x >= g0 && x < g1) {
-          r.set(x, top - 2, f(lk.snow ? C('#d6dbe2') : K[1]));
+          r.set(x, top - 2, f(lk.snow ? snowCol(lk, '#d6dbe2') : K[1]));
           r.set(x, top - 1, f(x % 3 === 0 ? K[2] : K[0]));
         } else if (!this.hasPortal || x < L.portalClip) {
           r.set(x, top - 1, x % 3 === 0 ? tieC : railC);
@@ -1512,7 +1674,7 @@
       }
       // Rochers.
       const rk = lk.rock.map(C);
-      const top = lk.snow ? C('#d4d9e0') : null;
+      const top = lk.snow ? snowCol(lk, '#d4d9e0') : null;
       rock(r, Math.round(W * 0.06), H - 6, 9, 6, rk, top);
       rock(r, Math.round(W * 0.15), H - 3, 5, 3, rk, top);
       rock(r, L.pilotX + 58 < W - 18 ? L.pilotX + 58 : Math.round(W * 0.95), L.feetY + 4, 4, 3, rk, top);
@@ -1526,7 +1688,7 @@
       this.paintPad(r, lk);
       // La valise de la station sol, couvercle ouvert.
       stamp(r, CASE, CASE_PAL, L.caseX, L.caseY);
-      if (lk.snow) r.rect(L.caseX, L.caseY + 6, 14, 1, C('#e2e6ec'));
+      if (lk.snow) r.rect(L.caseX, L.caseY + 6, 14, 1, snowCol(lk, '#e2e6ec'));
       // L'antenne sur son trépied.
       const tx = L.tripodX;
       const legC = C('#2e3138');
@@ -1643,7 +1805,7 @@
         const mid = cx + cw / 2;
         for (let x = Math.round(mid - half); x < Math.round(mid + half); x++) {
           let c = y === wallTop || x === Math.round(mid - half) || x === Math.round(mid + half) - 1 ? roofC[1] : roofC[0];
-          if (lk.snow && (y < ridgeY + 3 || x === Math.round(mid - half))) c = C('#d4d9e0');
+          if (lk.snow && (y < ridgeY + 3 || x === Math.round(mid - half))) c = snowCol(lk, '#d4d9e0');
           r.set(x, y, c);
         }
       }
@@ -1684,7 +1846,7 @@
           r.set(cx + cw + 1 + x + (y === 0 ? 1 : 0), base - 4 + y, c);
         }
       }
-      if (lk.snow) for (let x = cx + cw + 2; x < cx + cw + 7; x++) r.set(x, base - 5, C('#d4d9e0'));
+      if (lk.snow) for (let x = cx + cw + 2; x < cx + cw + 7; x++) r.set(x, base - 5, snowCol(lk, '#d4d9e0'));
 
       // La seconde clôture, qui borde le pré.
       const post = mix(D[0], G[0], 0.3);
@@ -1736,7 +1898,7 @@
       const vb = fgTop(vx + 15) + 3;
       for (let x = vx + 1; x < vx + 29; x++) r.tint(x, vb, [0, 0, 0], 0.35); // ombre
       stamp(r, VAN, vpal, vx, vb - VAN.length + 1);
-      if (lk.snow) for (let x = vx + 6; x < vx + 29; x++) r.set(x, vb - VAN.length + 1, C('#dfe3ea'));
+      if (lk.snow) for (let x = vx + 6; x < vx + 29; x++) r.set(x, vb - VAN.length + 1, snowCol(lk, '#dfe3ea'));
     }
 
     // L'aire de décollage : un tapis vu en perspective, bord orange, H blanc.
@@ -1769,6 +1931,16 @@
           }
         }
       }
+      // La nuit, les flaques renvoient les lumières : l'écran de la station (bleu) dans la
+      // flaque de la pilote, une lampe du viaduc (ambre) dans celle du pad.
+      if (lk.glints) {
+        const ga = C('#ffd99a');
+        const gb = C('#7fd0ff');
+        const pa = [L.padX - 22, L.groundY + 10];
+        const pb = [L.pilotX - 6, L.feetY + 4];
+        for (const [dx, dy, k] of [[2, 0, 0.55], [3, 0, 0.35], [-3, 1, 0.25]]) r.set(pa[0] + dx, pa[1] + dy, mix(r.get(pa[0] + dx, pa[1] + dy), ga, k));
+        for (const [dx, dy, k] of [[2, -1, 0.3], [2, 0, 0.6], [3, 0, 0.45], [1, 1, 0.25]]) r.set(pb[0] + dx, pb[1] + dy, mix(r.get(pb[0] + dx, pb[1] + dy), gb, k));
+      }
     }
 
     // Bande de brume qui dérive (peinte une fois, puis décalée à chaque image).
@@ -1792,7 +1964,9 @@
     /* ================= La vie de la scène ================= */
     update(dt, ctx) {
       const eff = (ctx && ctx.effect) || 'none';
-      if (!this.bg || eff !== this.effect) this.build(eff);
+      // Sans « night » dans le contexte (caméra d'ouverture), on garde l'état courant.
+      const night = ctx && 'night' in ctx ? !!ctx.night : this.night;
+      if (!this.bg || eff !== this.effect || night !== this.night) this.build(eff, night);
       const lk = this.lk;
       const { W, L } = this;
       this.t += dt;
@@ -2041,7 +2215,7 @@
 
     /* ================= Dessin d'une image ================= */
     draw(g) {
-      if (!this.bg) this.build(this.effect || 'none');
+      if (!this.bg) this.build(this.effect || 'none', this.night);
       const { H, L } = this;
       const lk = this.lk;
       const t = this.t;
@@ -2081,6 +2255,7 @@
       if (this.train && this.train.magic) this.drawSteam(g);
       if (this.car) this.drawFlyingCar(g);
       if (this.wraiths) this.drawWraiths(g);
+      if (this.bats.length) this.drawBats(g);
       this.drawMist(g, this.mistNear, L.vfloor - 12, -1.8, 0.85);
 
       // ----- Premier plan : la pilote et son poste -----
@@ -2163,6 +2338,17 @@
         g.fillStyle = `rgba(255,200,120,${(0.12 * f).toFixed(3)})`;
         g.fillRect(this.lantern.x - 1, this.lantern.y - 1, 3, 3);
         g.globalCompositeOperation = 'source-over';
+      }
+    }
+
+    // Vol erratique des chauves-souris : boucles irrégulières, battements rapides.
+    drawBats(g) {
+      const t = this.t;
+      for (const b of this.bats) {
+        const u = t * b.a + b.p;
+        const x = Math.round(b.cx + Math.sin(u) * b.rx + Math.sin(u * 2.7 + b.f) * 3);
+        const y = Math.round(b.cy + Math.sin(t * b.b + b.p * 1.3) * b.ry + Math.cos(u * 3.1) * 1.5);
+        g.drawImage(this.batSpr[Math.floor(t * 11 + b.f * 3) % 2], x - 1, y - 1);
       }
     }
 

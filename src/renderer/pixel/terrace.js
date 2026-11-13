@@ -226,6 +226,62 @@
     },
   };
 
+  /* ---------- La nuit ----------
+   * Avec la « Météo actuelle », Brume dit aussi à la scène s'il fait nuit. La terrasse est
+   * déjà un soir de ville ; sa version nuit est plus tardive : ciel plus profond, plus de
+   * lueur de couchant (sakura, automne), plus de fenêtres allumées, lumière ambiante plus
+   * basse (les lampes ressortent), la ville qui éclaire les nuages bas par en dessous sous la
+   * pluie, l'orage ou la neige, la neige bleutée avec ses flaques chaudes sous les lampes.
+   * Les conséquences du temps restent (sol mouillé, neige posée, éclairs, fleurs, feuilles).
+   * Plus de pigeons (ils dorment) ; des chauves-souris par nuit claire.
+   * city / cityK : lueur de la ville sous les nuages ; bats : chauves-souris. */
+  const NIGHT = {
+    none: {
+      sky: ['#02061a', '#050f2e', '#0a1c46', '#123064', '#1e4e84', '#3274a2'],
+      stars: 95, cloud: '#12305e', far: '#22527e', near: '#0f2850', fog: '#3a84ac',
+      winLit: 0.7, ambient: [0.42, 0.5, 0.8], warm: [1.16, 0.76, 0.4], motes: 26, bats: true,
+    },
+    rain: {
+      sky: ['#05080f', '#0a111d', '#111b2c', '#1a263a', '#26324a', '#3a3f56'],
+      cloud: '#1c2638', cloudLit: '#3c3a4c', far: '#25364c', near: '#111d30', fog: '#464e66',
+      winLit: 0.82, ambient: [0.38, 0.43, 0.64], warm: [1.18, 0.8, 0.46], motes: 6,
+      city: '#7a5458', cityK: 0.24,
+    },
+    storm: {
+      sky: ['#030409', '#070b14', '#0d1320', '#141d2e', '#1d283a', '#2c3346'],
+      cloud: '#151e2c', cloudLit: '#2e2e3e', far: '#1d2a3c', near: '#0d1726', fog: '#363f54',
+      winLit: 0.82, ambient: [0.34, 0.39, 0.6], warm: [1.18, 0.8, 0.46], motes: 4,
+      city: '#6a4a50', cityK: 0.2,
+    },
+    snow: {
+      sky: ['#090c20', '#111632', '#1a2244', '#262e56', '#383f68', '#504e78'],
+      cloud: '#202848', cloudLit: '#4a4462', far: '#3a466c', near: '#1c2646', fog: '#626c96',
+      winLit: 0.86, ambient: [0.4, 0.47, 0.75], warm: [1.04, 0.74, 0.38], motes: 10,
+      city: '#8a6474', cityK: 0.24,
+    },
+    sakura: {
+      sky: ['#05051a', '#0b0e32', '#171848', '#28245e', '#423672', '#5e4882'],
+      stars: 65, cloud: '#2a2a5e', far: '#3c3c72', near: '#1d1d4a', fog: '#62568c',
+      winLit: 0.68, ambient: [0.45, 0.46, 0.78], warm: [1.14, 0.76, 0.5], motes: 22, bats: true,
+    },
+    leaves: {
+      sky: ['#05040f', '#0d0a22', '#1a1336', '#2c1d48', '#422c56', '#58385e'],
+      stars: 50, cloud: '#2a1e42', far: '#42325a', near: '#1d1530', fog: '#644866',
+      winLit: 0.68, ambient: [0.45, 0.43, 0.68], warm: [1.18, 0.72, 0.36], motes: 20, bats: true,
+    },
+  };
+  // Version nuit d'un temps (fireflies et starfall sont déjà des nuits : inchangés).
+  function nightLook(effect) {
+    if (effect === 'fireflies' || effect === 'starfall') return LOOKS[effect];
+    const base = LOOKS[effect] || LOOKS.none;
+    return { ...base, ...(NIGHT[effect] || NIGHT.none), night: true };
+  }
+  // Chauves-souris : ailes hautes, ailes basses.
+  const BAT = [
+    ['b.....b', 'bb.b.bb', '.bbbbb.', '...b...'],
+    ['.......', '..bbb..', '.bbbbb.', 'b..b..b'],
+  ];
+
   // Rampes du feuillage : du plus sombre (loin de la lampe) au plus chaud (face à la lampe).
   const FOLIAGE = {
     green: ['#06111a', '#0a1c25', '#0f2a30', '#163b3a', '#224d40', '#46582e', '#865c22', '#c67a26', '#f0a43a', '#ffd47c'],
@@ -358,14 +414,20 @@
       this.nextBolt = 5;
       this.bolt = null;
       this.sil = { x: 0, dir: 1 };
+      // Chauves-souris des nuits claires (sans hasard ici : le décor ne doit pas changer).
+      this.bats = [];
+      this.nextBat = 5;
+      this.batImgs = BAT.map((rows) => B.PX.sprite(rows, { b: '#060a16' }));
       if (this.fast) {
         this.crowd.next = 0.2;
         this.cat.timer = 0.4;
         this.cat.next = 'walk';
         this.nextPlane = 0.3;
         this.nextBolt = 1.5;
+        this.nextBat = 0.4;
       }
       this.effect = null;
+      this.night = false;
       this.build('none');
     }
 
@@ -413,10 +475,13 @@
     }
 
     /* ================= Construction des calques ================= */
-    build(effect) {
+    // night : version nuit de ce temps (météo en direct, la nuit).
+    build(effect, night = false) {
       const t0 = performance.now();
       this.effect = effect;
-      const look = (this.look = LOOKS[effect] || LOOKS.none);
+      this.night = night;
+      const look = (this.look = night ? nightLook(effect) : LOOKS[effect] || LOOKS.none);
+      if (!look.bats) this.bats = [];
       this.windows = [];
       this.skyWins = [];
       this.antennas = [];
@@ -469,7 +534,17 @@
         { x: L.cafe.cx, y: L.FY0 + 10, r: 34, k: 0.38, sy: 2.2 },
         { x: L.sconce.x, y: L.sconce.y, r: 12, k: 0.6 },
       ];
-      for (const w of this.windows) if (w.lit) ls.push({ x: w.x + w.w / 2, y: w.y + w.h / 2, r: 13, k: 0.3 });
+      // Seules les fenêtres de l'écran éclairent l'écran (celles du prolongement : extLights).
+      for (const w of this.windows) if (w.lit && w.x >= 0 && w.x < this.W) ls.push({ x: w.x + w.w / 2, y: w.y + w.h / 2, r: 13, k: 0.3 });
+      return ls;
+    }
+
+    // Lumières du prolongement (elles n'éclairent que hors de l'écran) : ses lampes et ses
+    // fenêtres allumées.
+    extLights() {
+      if (!this.X) return null;
+      const ls = this.X.lights.slice();
+      for (const w of this.windows) if (w.lit && (w.x < 0 || w.x >= this.W)) ls.push({ x: w.x + w.w / 2, y: w.y + w.h / 2, r: 13, k: 0.3 });
       return ls;
     }
 
@@ -557,6 +632,19 @@
             if (n < 0.44 && bayer(x, y) > (n - 0.36) * 12) continue;
             c = mix(c, fog, (y / L.HZ) * 0.35);
             r.set(x, y, c);
+          }
+        }
+      }
+
+      // La nuit, sous un ciel couvert : la ville éclaire le bas des nuages par en dessous.
+      if (look.city) {
+        const city = C(look.city);
+        const span = Math.round(L.HZ * 0.7);
+        for (let y = L.HZ + 2 - span; y < L.HZ + 2; y++) {
+          const u = 1 - (L.HZ + 2 - y) / span;
+          for (let x = r.x0; x < r.x1; x++) {
+            const q = Math.floor(u * u * 6 + bayer(x, y) * 0.95) / 6;
+            if (q > 0) r.tint(x, y, city, q * look.cityK);
           }
         }
       }
@@ -851,7 +939,7 @@
       const BX = this.X ? this.X.BX : -Infinity;
       if (look.snow) snowCaps(r, glow, (x, y) => (x >= L.FX - 2 || x < BX) && y > L.railTop + 2 && y < L.parapet - 1);
       if (look.litter) this.paintLitter(r, R);
-      applyLight(r, this.lights(), look.ambient, look.warm, (x, y) => !glow[r.i(x, y)], this.X && this.X.lights);
+      applyLight(r, this.lights(), look.ambient, look.warm, (x, y) => !glow[r.i(x, y)], this.extLights());
       if (look.floor === 'wet') this.wetFloor(r);
       return r.toCanvas();
     }
@@ -2118,7 +2206,7 @@
       this.paintBigPlant(r, R);
       if (this.wide) r.only(() => this.paintExtFore(r, glow, rng(353)));
       if (look.snow) snowCaps(r, glow);
-      applyLight(r, this.lights(), look.ambient, look.warm, (x, y) => !glow[r.i(x, y)], this.X && this.X.lights);
+      applyLight(r, this.lights(), look.ambient, look.warm, (x, y) => !glow[r.i(x, y)], this.extLights());
       return r.toCanvas();
     }
 
@@ -2405,7 +2493,7 @@
     buildExtLife() {
       const { L, look, X, effect } = this;
       const season = effect === 'snow' ? 'winter' : effect === 'leaves' ? 'autumn' : 'spring';
-      const lights = this.lights().concat(X.lights);
+      const lights = this.lights().concat(this.extLights());
       const bakeAt = (sh, ox, oy) => {
         const ls = lights.map((l) => ({ ...l, x: l.x - ox, y: l.y - oy }));
         return B.People.bake(sh, (r) => PXC.applyLight(r, ls, look.ambient, look.warm));
@@ -2441,6 +2529,8 @@
         const near = k < 4 ? X.bench + 20 : X.fountain;
         this.pigeons.push({ x: near + (RP() - 0.5) * (k < 4 ? 50 : 70), y: k < 4 ? L.FY0 + 16 + Math.floor(RP() * 34) : L.LB + 15 + Math.floor(RP() * 18), dir: RP() < 0.5 ? -1 : 1, t: RP() * 4, peck: 0, walk: 0, c: RP() < 0.25 ? 1 : 0 });
       }
+      // La nuit, les pigeons dorment (ailleurs) : la place est à eux le jour seulement.
+      if (look.night) this.pigeons = [];
       // Un chat gris endormi sur la margelle de la fontaine.
       const S = this.sprites.cat;
       const grey = (cv) => {
@@ -2623,7 +2713,9 @@
 
     update(dt, ctx) {
       const eff = (ctx && ctx.effect) || 'none';
-      if (eff !== this.effect) this.build(eff);
+      // night absent (caméra d'ouverture) : on garde l'état courant.
+      const night = ctx && 'night' in ctx ? !!ctx.night : this.night;
+      if (eff !== this.effect || night !== this.night) this.build(eff, night);
       const { L, W } = this;
       this.t += dt;
       const t = this.t;
@@ -2686,6 +2778,7 @@
 
       // Papillons de nuit autour de la lanterne.
       for (const m of this.moths) m.a += m.sp * dt;
+      if (this.look.bats) this.updateBats(dt);
 
       // Poussières dorées.
       for (const q of this.motes) {
@@ -2705,6 +2798,29 @@
           this.nextBolt = 7 + Math.random() * 14;
         }
       }
+    }
+
+    // Chauves-souris : elles passent en zigzag au-dessus de la ville, seules ou à deux.
+    updateBats(dt) {
+      const { W, L } = this;
+      const x0 = this.wide ? -this.extL : L.FX;
+      this.nextBat -= dt;
+      if (this.nextBat <= 0) {
+        const dir = Math.random() < 0.5 ? 1 : -1;
+        const n = Math.random() < 0.35 ? 2 : 1;
+        const y0 = 20 + Math.random() * (L.HZ * 0.45);
+        for (let k = 0; k < n; k++) {
+          this.bats.push({ x: dir > 0 ? x0 - 10 - k * 14 : W + this.extR + 4 + k * 14, y0: y0 + k * 6, y: y0, dir, v: 22 + Math.random() * 10, t: Math.random() * 6, ph: Math.random() * 6 });
+        }
+        this.nextBat = this.fast ? 1.5 : 9 + Math.random() * 16;
+      }
+      for (const b of this.bats) {
+        b.t += dt;
+        // Vol saccadé : vitesse qui varie, petits crochets verticaux.
+        b.x += b.dir * b.v * dt * (0.7 + 0.5 * Math.abs(Math.sin(b.t * 2.3 + b.ph)));
+        b.y = b.y0 + Math.sin(b.t * 3.1 + b.ph) * 5 + Math.sin(b.t * 8.7) * 1.5;
+      }
+      this.bats = this.bats.filter((b) => b.x > x0 - 30 && b.x < W + this.extR + 30);
     }
 
     makeBolt() {
@@ -2936,6 +3052,7 @@
           g.fillRect(x, y - 1, 1, 1);
         }
       }
+      for (const b of this.bats) g.drawImage(this.batImgs[Math.floor(b.t / 0.08) % 2], Math.round(b.x) - 3, Math.round(b.y) - 2);
       // Éclair (derrière le décor).
       if (this.bolt && this.flash > 0.12 && !(this.flash > 0.34 && this.flash < 0.42)) {
         g.fillStyle = '#eef2ff';

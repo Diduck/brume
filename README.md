@@ -113,7 +113,8 @@ Brume vit dans la **barre des menus** (icône flocon). Raccourci pause : ⌥⌘B
 - **Météo actuelle** (en haut du panneau) : le vrai temps de ta position (approximative, par IP)
   ou d'une ville que tu choisis, avec la température et l'heure du relevé ; Open-Meteo. Quand il ne tombe rien,
   la saison décide : pétales au printemps, feuilles en automne, lucioles les nuits douces,
-  étoiles filantes les nuits claires (hémisphère sud compris).
+  étoiles filantes les nuits claires (hémisphère sud compris). Et la nuit, chez toi, la scène passe
+  vraiment en nuit : chaque temps (pluie, neige, orage…) a sa version nocturne, lampes allumées.
 - **Économe** : la carte graphique s'arrête quand il n'y a rien à dessiner, pause sur batterie,
   qualité adaptative si le Mac peine.
 

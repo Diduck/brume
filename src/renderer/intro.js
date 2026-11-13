@@ -30,7 +30,7 @@
   /* ---------- Lecture ---------- */
   let skip = false;
 
-  function play({ key, effect, name }) {
+  function play({ key, effect, night = false, name }) {
     const { k, W, H } = pixelSize();
     const sceneKey = B.PixelScenes[key] ? key : 'cafe';
     view.width = W * k;
@@ -45,7 +45,7 @@
     const margin = Math.round(W * 0.25);
     const ext = from === 'right' ? { left: margin, right: wide } : { left: wide, right: margin };
     const scene = new B.PixelScenes[sceneKey](W, H, { ext });
-    scene.update(0.001, { effect }); // peint le décor du temps choisi
+    scene.update(0.001, { effect, night }); // peint le décor du temps choisi (version nuit si besoin)
     const cam = new B.Multiplane(scene, sceneKey, effect, W, H, k, scene.extL || scene.extR ? 9 : 8);
     document.body.classList.add('playing');
     setTimeout(() => showGreeting(name), 700);
@@ -72,8 +72,8 @@
   /* ---------- Enregistrement en vidéo (pour l'écran de verrouillage) ----------
    * Même scène, même caméra, mais image par image à cadence fixe, sans agrandissement :
    * chaque image (W × H pixels) part vers le processus principal qui l'encode. */
-  async function record({ key, effect, fps = 30, seconds = 30, W, H, encode }) {
-    if (encode === 'hevc') return recordHevc({ key, effect, fps, seconds, W, H });
+  async function record({ key, effect, night = false, fps = 30, seconds = 30, W, H, encode }) {
+    if (encode === 'hevc') return recordHevc({ key, effect, night, fps, seconds, W, H });
     try {
       const sceneKey = B.PixelScenes[key] ? key : 'cafe';
       view.width = W;
@@ -83,7 +83,7 @@
       const margin = Math.round(W * 0.25);
       const ext = from === 'right' ? { left: margin, right: wide } : { left: wide, right: margin };
       const scene = new B.PixelScenes[sceneKey](W, H, { ext });
-      scene.update(0.001, { effect });
+      scene.update(0.001, { effect, night });
       const cam = new B.Multiplane(scene, sceneKey, effect, W, H, 1, 9);
       const n = Math.round(fps * seconds);
       for (let i = 0; i < n; i++) {
@@ -101,7 +101,7 @@
    * aucun logiciel à installer. Chaque image (W × H) est agrandie × 9 en pixels nets
    * (427 × 240 → 3843 × 2160, recadrée en 3840 × 2160, la 4K), encodée en HEVC, puis rangée
    * dans un fichier vidéo (mp4-muxer). Le fichier part en une fois au processus principal. */
-  async function recordHevc({ key, effect, fps, seconds, W, H }) {
+  async function recordHevc({ key, effect, night = false, fps, seconds, W, H }) {
     try {
       const OW = 3840;
       const OH = 2160;
@@ -113,7 +113,7 @@
       const margin = Math.round(W * 0.25);
       const ext = from === 'right' ? { left: margin, right: wide } : { left: wide, right: margin };
       const scene = new B.PixelScenes[sceneKey](W, H, { ext });
-      scene.update(0.001, { effect });
+      scene.update(0.001, { effect, night });
       const cam = new B.Multiplane(scene, sceneKey, effect, W, H, 1, 9);
       const big = new OffscreenCanvas(OW, OH);
       const bg = big.getContext('2d');

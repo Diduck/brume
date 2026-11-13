@@ -96,12 +96,45 @@
     fireflies: { sky: ['#0e1430', '#1c2450', '#34356a', '#55466e'].map(C), stars: 0.6, tree: 'summer', fireflies: true },
     starfall: { sky: ['#070b22', '#111a40', '#22265a', '#3a3468'].map(C), stars: 1 },
   };
-  const SNOW = [C('#e8eef8'), C('#c4cede'), C('#9aa6bc')];
+  const SNOW0 = [C('#e8eef8'), C('#c4cede'), C('#9aa6bc')];
   const TREES = {
     sakura: [C('#f2b6c8'), C('#e48aa8'), C('#fbd8e2'), C('#b85a7a')],
     autumn: [C('#e07a2a'), C('#c4482a'), C('#f2b03a'), C('#8a3a22')],
     summer: [C('#2e5a3a'), C('#3e7a48'), C('#5a9a5a'), C('#1e3a28')],
   };
+  // Versions nuit (météo en direct, quand il fait nuit). Le café est déjà un soir : la rue
+  // de « none », « rain », « storm », « fireflies » et « starfall » est une nuit, elle ne
+  // change pas. La neige, le printemps et l'automne sont des fins de journée : la nuit, le
+  // ciel s'éteint (étoiles et lune s'il est dégagé, ciel bas éclairé par la ville s'il
+  // neige), la neige bleuit, les arbres passent dans l'ombre ; vitrines, fenêtres,
+  // lampadaire et néon restent allumés, l'intérieur reste chaleureux.
+  const shadeNight = (c) => mix(c, [18, 22, 58], 0.32);
+  const NIGHT_MOODS = {
+    snow: {
+      ...MOODS.snow,
+      sky: ['#0c1024', '#1a1f3c', '#2e3454', '#4c4a68'].map(C),
+      snowPal: ['#c8d2e6', '#9ca8c4', '#76829e'].map(C),
+      snowCloud: C('#2c3250'),
+      snowRoad: ['#363c56', '#4a506c'].map(C),
+      snowTrack: C('#262a40'),
+    },
+    sakura: {
+      ...MOODS.sakura,
+      sky: ['#070a22', '#10173c', '#1e2452', '#352f62'].map(C),
+      stars: 0.75,
+      moon: { u: 0.58, y: 17, r: 5, c: ['#fbf6f2', '#e6dce0', '#b8aab8'].map(C), glow: C('#b8b0e0') },
+      treePal: TREES.sakura.map(shadeNight),
+    },
+    leaves: {
+      ...MOODS.leaves,
+      sky: ['#0a0920', '#171334', '#2a1d46', '#452c52'].map(C),
+      stars: 0.6,
+      moon: { u: 0.6, y: 18, r: 6, c: ['#ffe2b0', '#f0c48a', '#c09068'].map(C), glow: C('#c88a6a') },
+      treePal: TREES.autumn.map(shadeNight),
+    },
+  };
+  // L'ambiance de la rue pour un temps, de jour ou de nuit.
+  const moodFor = (effect, night) => (night && NIGHT_MOODS[effect]) || MOODS[effect] || MOODS.none;
   const BULBS = [C('#ffd27a'), C('#ff9f6b'), C('#7fe3ff'), C('#ffe9b0'), C('#ff7ab0')];
 
   // Petite police 3 × 5 pour les enseignes.
@@ -203,6 +236,7 @@
         mug: SP.mug(),
       };
       this.effect = 'none';
+      this.night = false; // version nuit du temps (météo en direct, la nuit)
       this.mood = MOODS.none;
       this.outside = this.paintOutside();
       this.inside = this.paintInside();
@@ -296,6 +330,7 @@
       const x0 = L.wx0 - 4;
       const x1 = L.wx1 + 4;
       const mood = this.mood;
+      const SNOW = mood.snowPal || SNOW0; // neige (bleutée la nuit)
       r.gradient(x0, L.wy0 - 4, x1 - x0, L.street0 - L.wy0 + 4, mood.sky, 12);
       if (mood.stars) {
         for (let k = 0; k < 140 * mood.stars; k++) {
@@ -309,9 +344,11 @@
         for (let x = x0; x < x1; x++) {
           const n = fbm(x * 0.028, y * 0.11, 5);
           const thr = mood.stars ? 0.7 : mood.snow ? 0.5 : 0.55;
-          if (n > thr) r.set(x, y, bayer(x, y) < (n - thr) * 5 ? (mood.snow ? SNOW[2] : PAL.cloudLit) : mood.snow ? C('#5a6280') : PAL.cloud);
+          if (n > thr) r.set(x, y, bayer(x, y) < (n - thr) * 5 ? (mood.snow ? SNOW[2] : PAL.cloudLit) : mood.snow ? mood.snowCloud || C('#5a6280') : PAL.cloud);
         }
       }
+      // Lune (nuits claires des versions nuit) : halo tramé, disque, mers et ombre au bord.
+      if (mood.moon) this.paintMoon(r, mood.moon);
       // Ville lointaine.
       for (let x = x0; x < x1; ) {
         const w = 5 + Math.floor(R() * 12);
@@ -381,8 +418,8 @@
       r.rect(lx - 3, L.wy0 + 20, 8, 2, PAL.post);
       r.rect(lx + 3, L.wy0 + 22, 4, 3, C('#ffe6a8'));
       // Rue : mouillée (reflets de tout ce qui est éclairé), enneigée ou sèche.
-      r.gradient(x0, L.street0, x1 - x0, L.street1 - L.street0, mood.snow ? [C('#5a6078'), C('#7a8098')] : PAL.asphalt, 5);
-      if (mood.snow) for (let xx = x0; xx < x1; xx++) for (const ty of [L.street0 + 4, L.street0 + 11]) r.set(xx, ty, C('#3a3f56'));
+      r.gradient(x0, L.street0, x1 - x0, L.street1 - L.street0, mood.snow ? mood.snowRoad || [C('#5a6078'), C('#7a8098')] : PAL.asphalt, 5);
+      if (mood.snow) for (let xx = x0; xx < x1; xx++) for (const ty of [L.street0 + 4, L.street0 + 11]) r.set(xx, ty, mood.snowTrack || C('#3a3f56'));
       for (let y = L.street0; y < L.street1 && mood.wet; y++) {
         for (let xx = x0; xx < x1; xx++) {
           const src = r.get(xx + Math.round(Math.sin(y * 1.7) * 1.5), L.street0 - 2 - (y - L.street0) * 2);
@@ -405,13 +442,38 @@
       }
       if (mood.snow) for (let xx = x0; xx < x1; xx++) if (hash(xx, 5, 8) > 0.6) r.set(xx, L.street1 + 2 + Math.floor(hash(xx, 9) * 12), SNOW[2]); // traces de pas
       // Arbre du trottoir (cerisier en fleurs, arbre roux, arbre d'été).
-      if (mood.tree) this.paintStreetTree(r, rng(42), TREES[mood.tree], mood.tree);
+      if (mood.tree) this.paintStreetTree(r, rng(42), mood.treePal || TREES[mood.tree], mood.tree);
       // Lumières de la rue : lampadaire et vitrines.
       const lights = [{ x: lx + 5, y: L.wy0 + 24, r: 26, k: 0.9 }];
       for (const w of this.windows) if (w.lit) lights.push({ x: w.x + 2, y: w.y + 4, r: 5, k: 0.25 });
       applyLight(r, lights, [0.92, 0.92, 1.0], [0.7, 0.55, 0.35]);
       if (this.ext) this.paintOutsideWorld(r, spans);
       return r.toCanvas();
+    }
+
+    paintMoon(r, m) {
+      const { L } = this;
+      const mx = Math.round(L.wx0 + (L.wx1 - L.wx0) * m.u);
+      const my = L.wy0 + m.y;
+      const gR = m.r * 2.8;
+      for (let y = Math.floor(my - gR); y <= my + gR; y++) {
+        for (let x = Math.floor(mx - gR); x <= mx + gR; x++) {
+          const d = Math.hypot(x - mx, y - my);
+          if (d <= m.r || d > gR) continue;
+          const q = Math.floor((1 - (d - m.r) / (gR - m.r)) * 3 + bayer(x, y) * 0.9) / 3;
+          if (q > 0) r.tint(x, y, m.glow, q * 0.3);
+        }
+      }
+      for (let y = my - m.r; y <= my + m.r; y++) {
+        for (let x = mx - m.r; x <= mx + m.r; x++) {
+          const d = Math.hypot(x - mx, y - my) / m.r;
+          if (d > 1.02) continue;
+          let c = m.c[0];
+          if (noise(x * 0.6, y * 0.6, 44) > 0.6) c = m.c[1]; // mers lunaires
+          if (x - mx + (y - my) * 0.3 > m.r * 0.5 && d > 0.6) c = m.c[2]; // ombre sur le bord
+          r.set(x, y, c);
+        }
+      }
     }
 
     paintStreetTree(r, R, cols, kind, atX) {
@@ -443,6 +505,7 @@
     paintOutsideWorld(r, spans) {
       const { W, H, L } = this;
       const mood = this.mood;
+      const SNOW = mood.snowPal || SNOW0;
       const R = rng(9001);
       const xa = -this.extL;
       const xb = W + this.extR;
@@ -460,7 +523,7 @@
         for (let x = xa; x < xb; x++) {
           const n = fbm(x * 0.028, y * 0.11, 5);
           const thr = mood.stars ? 0.7 : mood.snow ? 0.5 : 0.55;
-          if (n > thr) w.set(x, y, bayer(x, y) < (n - thr) * 5 ? (mood.snow ? SNOW[2] : PAL.cloudLit) : mood.snow ? C('#5a6280') : PAL.cloud);
+          if (n > thr) w.set(x, y, bayer(x, y) < (n - thr) * 5 ? (mood.snow ? SNOW[2] : PAL.cloudLit) : mood.snow ? mood.snowCloud || C('#5a6280') : PAL.cloud);
         }
       }
       for (let x = xa; x < xb; ) {
@@ -499,8 +562,8 @@
         w.rect(lx + 3, L.wy0 + 22, 4, 3, C('#ffe6a8'));
       }
       // Rue, trottoirs (le nôtre continue jusqu'en bas : on le voit par la porte vitrée).
-      w.gradient(xa, L.street0, xb - xa, L.street1 - L.street0, mood.snow ? [C('#5a6078'), C('#7a8098')] : PAL.asphalt, 5);
-      if (mood.snow) for (let xx = xa; xx < xb; xx++) for (const ty of [L.street0 + 4, L.street0 + 11]) w.set(xx, ty, C('#3a3f56'));
+      w.gradient(xa, L.street0, xb - xa, L.street1 - L.street0, mood.snow ? mood.snowRoad || [C('#5a6078'), C('#7a8098')] : PAL.asphalt, 5);
+      if (mood.snow) for (let xx = xa; xx < xb; xx++) for (const ty of [L.street0 + 4, L.street0 + 11]) w.set(xx, ty, mood.snowTrack || C('#3a3f56'));
       for (let y = L.street0; y < L.street1 && mood.wet; y++) {
         for (let xx = xa; xx < xb; xx++) {
           const src = w.get(xx + Math.round(Math.sin(y * 1.7) * 1.5), L.street0 - 2 - (y - L.street0) * 2);
@@ -526,7 +589,7 @@
       if (mood.tree) {
         for (const tx of [-292, -540]) {
           if (tx < xa + 20) continue;
-          this.paintStreetTree(w, rng(43 - tx), TREES[mood.tree], mood.tree, tx);
+          this.paintStreetTree(w, rng(43 - tx), mood.treePal || TREES[mood.tree], mood.tree, tx);
           this.worldTrees.push({ x: tx, y: L.street0 - 34 });
         }
       }
@@ -585,6 +648,7 @@
     paintFacadeW(r, x, w, fi, R, wins, signs) {
       const { L } = this;
       const mood = this.mood;
+      const SNOW = mood.snowPal || SNOW0;
       const k = ((fi % 4) + 4) % 4;
       const top = L.wy0 + 30 + Math.floor(R() * 26);
       const base = L.street0;
@@ -663,9 +727,11 @@
     }
 
     // Le temps a changé : on repeint la rue d'en face.
-    setEffect(effect) {
+    // night : version nuit de ce temps (voir NIGHT_MOODS).
+    setEffect(effect, night = false) {
       this.effect = effect;
-      this.mood = MOODS[effect] || MOODS.none;
+      this.night = night;
+      this.mood = moodFor(effect, night);
       this.windows = [];
       this.sign = null;
       this.treeCenter = null;
@@ -1777,7 +1843,15 @@
     update(dt, ctx) {
       const { L } = this;
       this.t += dt;
-      if ((ctx.effect || 'none') !== this.effect) this.setEffect(ctx.effect || 'none');
+      const eff = ctx.effect || 'none';
+      // night absent (caméra d'ouverture) : on garde l'état courant.
+      const night = 'night' in ctx ? !!ctx.night : this.night;
+      if (eff !== this.effect) this.setEffect(eff, night);
+      else if (night !== this.night) {
+        // Même rue (temps déjà nocturne) : rien à repeindre.
+        if (moodFor(eff, night) === this.mood) this.night = night;
+        else this.setEffect(eff, night);
+      }
       // Pluie qui tombe : seulement si aucun effet météo n'est actif (pas de double pluie).
       const raining = ctx.effect === 'none';
       this.raining = raining;

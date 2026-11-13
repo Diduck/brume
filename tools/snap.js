@@ -52,7 +52,7 @@ app.whenReady().then(() => {
     }
     // SNAP_MAGIC=1 : coup de baguette simulé (easter egg de la scène Drones).
     if (process.env.SNAP_MAGIC) setTimeout(() => win.webContents.send('command', { type: 'magic', path: Array.from({ length: 40 }, (_, i) => ({ x: W / 2 + 60 * Math.cos(i / 6), y: H / 3 + 60 * Math.sin(i / 6) + (i > 30 ? (i - 30) * 20 : 0) })) }), 300);
-    if (page === 'intro') win.webContents.send('command', { type: 'intro', key: settings.wallpaper, effect: settings.effect, name: require('node:os').userInfo().username });
+    if (page === 'intro') win.webContents.send('command', { type: 'intro', key: require('../src/shared/palettes.js').resolve(settings.wallpaper, settings.effect) || settings.wallpaper, effect: settings.effect, night: !!settings.night, name: require('node:os').userInfo().username });
     // Plusieurs délais possibles (« 500,3000,6000 ») : une capture par délai, suffixée.
     const delays = String(delay).split(',').map(Number);
     let left = delays.length;

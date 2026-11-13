@@ -318,6 +318,92 @@
     },
   };
 
+  /* ================= Version nuit de chaque temps (météo en direct, la nuit) =================
+   * La nuit garde les conséquences du temps (lac agité, neige posée, ciel couvert, cerisiers
+   * en fleurs, feuillages roux) mais prend la lumière des nuits de la scène (lucioles, pluie
+   * d'étoiles) : ciel sombre, plus de soleil, ville et rives allumées, reflets dans l'eau.
+   * Ciel dégagé (none, sakura, leaves) : lune et étoiles. Ciel couvert (rain, snow, storm) :
+   * ni lune ni étoiles, mais un plafond éclairé par en dessous par les lumières de la ville.
+   * Pas de vie diurne : ni voiliers en course, ni parapentes, ni paddle, ni hors-bord.
+   * Les feux d'artifice et la boule à facettes restent réservés à fireflies et starfall. */
+  const NIGHT_FX = ['fireflies', 'starfall'];
+  // Ce que toutes les nuits « météo » partagent (reprend la nuit des lucioles).
+  const NIGHT_BASE = {
+    night: true, nightWx: true,
+    cloud: LOOKS.fireflies.cloud, haze: LOOKS.fireflies.haze, hazeK: 0.8,
+    far: LOOKS.fireflies.far, hill: LOOKS.fireflies.hill, mount: LOOKS.fireflies.mount, rock: LOOKS.fireflies.rock,
+    lake: LOOKS.fireflies.lake, ripple: LOOKS.fireflies.ripple,
+    amb: LOOKS.fireflies.amb, desat: 0.25,
+    glitter: 0, sails: 0, para: 0, birds: false, paddle: false, motor: false,
+    fireworks: false, fireflies: false, meteors: false, lights: 0.6,
+  };
+  // Ce qui change d'une nuit à l'autre : ciel, lune, nuages, lumière, ce qui vit encore.
+  const NIGHT_LOOKS = {
+    // Nuit calme et claire : la lune, des étoiles, quelques nuages liserés d'argent.
+    none: {
+      sky: LOOKS.fireflies.sky, clouds: 'night', moon: { u: 0.66, y: 0.11 }, stars: 120,
+      steamer: true, swans: true, walkers: true, lights: 0.58,
+    },
+    // Nuit de printemps : ciel un peu mauve, les cerisiers en fleurs sous la lune.
+    sakura: {
+      sky: ['#090a26', '#0d0d2e', '#121236', '#17173e', '#1d1c46', '#25234e', '#2e2a56', '#38325c', '#443a62', '#524466'],
+      cloud: ['#0e0e2a', '#151536', '#1e1c44', '#2a2752', '#3c3862', '#585478'],
+      clouds: 'night', haze: '#30304e', moon: { u: 0.3, y: 0.1 }, stars: 100,
+      amb: [0.34, 0.27, 0.45],
+      steamer: true, swans: true, walkers: true, lights: 0.56,
+    },
+    // Nuit d'automne : la lune basse, l'horizon ambré par la ville, les cheminées qui fument.
+    leaves: {
+      sky: ['#060a20', '#090d26', '#0d112c', '#111632', '#161a38', '#1c1f3c', '#24243f', '#2e2a42', '#3a3044', '#463644'],
+      cloud: ['#0e0e24', '#16152e', '#201d38', '#2c2742', '#3e3650', '#5a4e62'],
+      clouds: 'night', haze: '#2e2c46', moon: { u: 0.22, y: 0.19 }, stars: 80,
+      amb: [0.34, 0.31, 0.44], smoke: true,
+      steamer: true, swans: true, walkers: true, lights: 0.6,
+    },
+    // Nuit de pluie : plafond bas, brume, lac agité et ronds de pluie, reflets mouillés.
+    rain: {
+      sky: ['#0a0c12', '#0c0f16', '#0f121a', '#13161e', '#171a22', '#1c1e26', '#22232a', '#2a282c', '#33302e', '#3e3830'],
+      cloud: ['#090b11', '#0d1017', '#12151d', '#191c24', '#22242c', '#2e2e34'],
+      clouds: 'overcast', haze: '#2a2a34', hazeK: 1.1, mist: true,
+      far: '#181c28', hill: ['#10161c', '#141a20', '#1a2026'],
+      lake: ['#262a34', '#20242e', '#1a1e28', '#161a24', '#121620'], ripple: ['#4c4e5a', '#090c14'],
+      amb: [0.3, 0.31, 0.4], desat: 0.35, wet: true, rings: 1,
+      cityGlow: { c: [255, 160, 80], k: 0.2 }, sheen: '#6a6470', reflK: 1.5,
+      steamer: true, swans: true, walkers: true, umbrella: true, lights: 0.64,
+    },
+    // Nuit d'orage : plus noire encore, écume sur le lac, éclairs.
+    storm: {
+      sky: ['#050609', '#06080b', '#080a0e', '#0a0c11', '#0d0f14', '#111318', '#15161b', '#1b1a1e', '#221f20', '#2a2522'],
+      cloud: ['#040508', '#07090d', '#0b0d12', '#111419', '#191b21', '#24252a'],
+      clouds: 'overcast', haze: '#202028', hazeK: 1.2, mist: true,
+      far: '#121620', hill: ['#0a1014', '#0e1418', '#12181c'],
+      lake: ['#1e222a', '#191d25', '#151920', '#11151c', '#0e1218'], ripple: ['#40444e', '#06080e'],
+      amb: [0.24, 0.26, 0.35], desat: 0.4, wet: true, storm: true, rings: 2, caps: true,
+      cityGlow: { c: [255, 150, 80], k: 0.16 }, sheen: '#56525e', reflK: 1.5,
+      steamer: false, swans: true, walkers: false, lights: 0.55,
+    },
+    // Nuit de neige : tout est blanc, mais d'un blanc de nuit, rosi par les lumières de la
+    // ville que renvoie le plafond de nuages ; les cheminées fument.
+    snow: {
+      sky: ['#14141e', '#18171f', '#1c1b22', '#211f25', '#272328', '#2e292b', '#36302e', '#403731', '#4a3e34', '#544438'],
+      cloud: ['#121219', '#18181f', '#202027', '#2a2930', '#36343a', '#464246'],
+      clouds: 'overcast', haze: '#3a3640', hazeK: 1.2,
+      far: '#2a2e3e', hill: ['#2e3442', '#363c4a', '#424856'],
+      lake: ['#2a3040', '#242a3a', '#1e2434', '#1a202e', '#161c28'], ripple: ['#58627a', '#0e1420'],
+      amb: [0.42, 0.42, 0.54], desat: 0.3, snow: true, smoke: true,
+      snowTint: [60, 56, 86], snowK: 0.58, cityGlow: { c: [255, 170, 110], k: 0.22 },
+      steamer: true, swans: true, walkers: true, lights: 0.62,
+    },
+  };
+  // L'ambiance d'un temps, de jour ou de nuit. fireflies et starfall sont déjà des nuits.
+  function lookFor(effect, night) {
+    const day = LOOKS[effect] || LOOKS.none;
+    if (!night || NIGHT_FX.includes(effect)) return day;
+    const key = NIGHT_LOOKS[effect] ? effect : 'none';
+    const base = { ...(LOOKS[key] || LOOKS.none), ...NIGHT_BASE, leaf: (LOOKS[key] || LOOKS.none).leaf };
+    return { ...base, ...NIGHT_LOOKS[key] };
+  }
+
   // Couleurs des feux d'artifice : or, rouge, vert, bleu, blanc scintillant, violet, orange.
   const FW_COLORS = [[255, 214, 110], [255, 84, 72], [96, 255, 136], [96, 170, 255], [255, 255, 255], [214, 124, 255], [255, 156, 64]];
 
@@ -353,6 +439,7 @@
       this.fast = X.fastTest();
       this.t = 0;
       this.effect = null;
+      this.night = false;
       this.build('none');
     }
 
@@ -402,9 +489,11 @@
     }
 
     /* ---------- Construction des calques ---------- */
-    build(effect) {
+    // night : version nuit de ce temps (météo en direct, la nuit).
+    build(effect, night = false) {
       this.effect = effect;
-      const look = (this.look = LOOKS[effect] || LOOKS.none);
+      this.night = night;
+      const look = (this.look = lookFor(effect, night));
       const amb = look.amb;
       const d = look.desat || 0;
       this.grade = (h) => {
@@ -413,6 +502,8 @@
         return [Math.min(255, (c[0] + (l - c[0]) * d) * amb[0]), Math.min(255, (c[1] + (l - c[1]) * d) * amb[1]), Math.min(255, (c[2] + (l - c[2]) * d) * amb[2])];
       };
       this.haze = C(look.haze);
+      // La neige : blanche le jour ; la nuit, un blanc éteint, teinté par la ville.
+      this.sn = look.snowTint ? (h) => mix(C(h), look.snowTint, look.snowK) : C;
       this.lamps = [];
       this.extLamps = [];
       this.cityLights = [];
@@ -445,6 +536,7 @@
       this.paintStars(r);
       if (look.moon) this.paintMoon(r);
       this.paintClouds(r);
+      if (look.cityGlow) this.paintCityGlow(r);
 
       // Lointaines collines bleues, la vallée.
       const far = this.grade(look.far);
@@ -455,7 +547,7 @@
           const d = y - top;
           let c = d === 0 ? farTop : far;
           if (d > 0 && fbm(x * 0.09, y * 0.2, 43, 2) > 0.6) c = mix(far, this.haze, 0.25);
-          if (look.snow && d < 3 + noise(x * 0.1, 1, 44) * 3) c = mix(C('#e8ecf0'), far, 0.25);
+          if (look.snow && d < 3 + noise(x * 0.1, 1, 44) * 3) c = mix(this.sn('#e8ecf0'), far, 0.25);
           r.set(x, y, c);
         }
       }
@@ -500,6 +592,22 @@
             r.tint(x, y, c, b);
             if (hash(x, y, 10) < 0.22) this.twinkles.push({ x, y, c, p: hash(x, y, 11) * 6, s: 1 + hash(x, y, 12) * 2.5 });
           }
+        }
+      }
+    }
+
+    // Nuit couverte : le plafond de nuages éclairé par en dessous par la ville (une lueur
+    // orangée, tramée, qui monte de l'horizon et s'efface vers le zénith).
+    paintCityGlow(r) {
+      const { W, L, look } = this;
+      const gc = look.cityGlow.c;
+      for (let y = 0; y < L.hz + 6; y++) {
+        const v = Math.pow(clamp01(y / (L.hz + 6)), 2.2);
+        for (let x = r.x0; x < r.x1; x++) {
+          // Plus forte au-dessus de la ville (au centre et à gauche) qu'au-dessus de la montagne.
+          const over = 0.75 + 0.25 * clamp01((0.95 - x / W) / 0.3) + (fbm(x * 0.02, y * 0.05, 37, 2) - 0.5) * 0.4;
+          const q = Math.floor(clamp01(v * over) * 5 + bayer(x, y)) / 5;
+          if (q > 0) r.tint(x, y, gc, q * look.cityGlow.k);
         }
       }
     }
@@ -664,7 +772,7 @@
       const { W, H, look } = this;
       const tones = look.mount.map((h) => this.grade(h));
       const rock = this.grade(look.rock);
-      const snow = [C('#f2f4f6'), C('#d6dce4'), C('#b4bcc8')];
+      const snow = [this.sn('#f2f4f6'), this.sn('#d6dce4'), this.sn('#b4bcc8')];
       // Contreforts et ravines qui descendent la pente (vers le bas à gauche), et un grain plus fin.
       const relief = (x, y) => fbm((x + y * 0.8) * 0.07, (y - x * 0.25) * 0.02, 17, 3) + fbm(x * 0.14, y * 0.14, 19, 2) * 0.2;
       for (let x = r.x0; x < r.x1; x++) {
@@ -732,7 +840,7 @@
     // Une pente boisée vue de loin (collines, crête) : forêt tramée, liseré en haut.
     paintSlope(r, topFn, tones, seed, hazeK, edgeK = 0.4) {
       const { H, look } = this;
-      const snow = C('#e4e8ee');
+      const snow = this.sn('#e4e8ee');
       for (let x = r.x0; x < r.x1; x++) {
         const top = Math.round(topFn(x));
         if (top >= H - 1) continue;
@@ -864,7 +972,7 @@
             if (j < roofH) {
               c = roof;
               if (i < bw / 2 && j === 0) c = mix(roof, [255, 255, 255], 0.18); // pan au soleil
-              if (look.snow) c = j === 0 || i < bw / 2 ? C('#eef2f6') : C('#cdd4dc');
+              if (look.snow) c = j === 0 || i < bw / 2 ? this.sn('#eef2f6') : this.sn('#cdd4dc');
             } else {
               c = i === bw - 1 && bw > 2 ? mix(wall, [60, 70, 90], 0.25) : wall;
               if (bw > 2 && j > roofH && (i + j) % 2 === 1 && hash(bx + i, by + j, 90) > 0.5) c = mix(wall, [50, 60, 80], 0.5);
@@ -939,7 +1047,7 @@
       for (let j = 0; j < h; j++) {
         for (let i = 0; i < w; i++) {
           let c = i >= w - 2 ? shade : white;
-          if (j === 0) c = look.snow ? C('#f4f6f8') : roof;
+          if (j === 0) c = look.snow ? this.sn('#f4f6f8') : roof;
           else if (j % 2 === 0 && i % 2 === 1 && i < w - 1) c = mix(c, [70, 80, 100], 0.35);
           r.set(x + i, yb - h + j, mix(c, this.haze, 0.15));
         }
@@ -988,8 +1096,8 @@
         r.set(tx + 1, yb - h - 7, roof);
       }
       if (look.snow) {
-        r.rect(x0 + 2, yb - h - 3, w - 4, 1, C('#f4f6f8'));
-        for (const tx of [x0, x0 + w - 3]) r.rect(tx, yb - h - 5, 3, 1, C('#f4f6f8'));
+        r.rect(x0 + 2, yb - h - 3, w - 4, 1, this.sn('#f4f6f8'));
+        for (const tx of [x0, x0 + w - 3]) r.rect(tx, yb - h - 5, 3, 1, this.sn('#f4f6f8'));
       }
       // Le soir : la façade est illuminée.
       if (look.lights >= 0.3) {
@@ -1347,8 +1455,8 @@
 
     // Neige posée sur ce qui regarde vers le haut.
     snowCaps(r, y0, y1, glow) {
-      const S1 = C('#eef1f6');
-      const S2 = C('#c8d0dc');
+      const S1 = this.sn('#eef1f6');
+      const S2 = this.sn('#c8d0dc');
       for (let y = Math.max(1, y0); y < y1; y++) {
         for (let x = r.x0; x < r.x1; x++) {
           if (r.alpha(x, y) !== 255 || r.alpha(x, y - 1) !== 0) continue;
@@ -1618,8 +1726,8 @@
           // Bord découpé : feuilles isolées sur le pourtour.
           if (up < 0 && hash(x, y, t.seed + 7) > 0.62 && ly < -0.4) continue;
           let c = tones[i];
-          if (snow && (up < 0 || (up !== k && ly < -0.5)) && ly < -0.2) c = hash(x, y, 9) > 0.25 ? C('#eef2f6') : C('#c8d0da');
-          else if (snow && ly < -0.45 && i >= nt - 3) c = hash(x, y, 11) > 0.3 ? C('#e2e8ee') : C('#b8c2ce');
+          if (snow && (up < 0 || (up !== k && ly < -0.5)) && ly < -0.2) c = hash(x, y, 9) > 0.25 ? this.sn('#eef2f6') : this.sn('#c8d0da');
+          else if (snow && ly < -0.45 && i >= nt - 3) c = hash(x, y, 11) > 0.3 ? this.sn('#e2e8ee') : this.sn('#b8c2ce');
           r.set(x, y, c);
         }
       }
@@ -1637,7 +1745,7 @@
         for (let i = -w; i <= w; i++) {
           const v = -i / (w + 1) * 0.6 - tier * 0.5 + 0.2 + (hash(t.x + i, y, t.seed) - 0.5) * 0.4;
           let c = tones[Math.max(0, Math.min(4, Math.floor((v + 1) * 2.2 + bayer(t.x + i, y))))];
-          if (look.snow && tier < 0.25 && hash(t.x + i, y, 3) > 0.3) c = C('#e8ecf2');
+          if (look.snow && tier < 0.25 && hash(t.x + i, y, 3) > 0.3) c = this.sn('#e8ecf2');
           r.set(t.x + i, t.top + y, c);
         }
       }
@@ -1794,7 +1902,7 @@
     // Pluie : reflets mouillés sur les toits et le lampadaire.
     wetShine(r, glow) {
       const { H } = this;
-      const sheen = C(this.look.sky[7]);
+      const sheen = C(this.look.sheen || this.look.sky[7]);
       for (let y = Math.round(H * 0.8); y < H; y++) {
         for (let x = r.x0; x < r.x1; x++) {
           if (glow[r.i(x, y)] || r.alpha(x, y - 1) !== 0) continue;
@@ -1919,7 +2027,7 @@
         if (this.fast) this.flock.next = 0.3;
       }
       this.flies = look.fireflies ? Array.from({ length: Math.round((22 * span) / W) }, () => this.newFly()) : [];
-      this.smoke = new X.Puffs(look.wet ? '170,176,186' : '226,230,236');
+      this.smoke = new X.Puffs(look.nightWx ? '96,96,116' : look.wet ? '170,176,186' : '226,230,236');
       // Feux d'artifice : les nuits d'été (forcés avec #fireworks dans l'adresse, pour les captures).
       this.fwForce = typeof location !== 'undefined' && location.hash === '#fireworks';
       this.fwOn = !!look.fireworks || this.fwForce;
@@ -2185,7 +2293,9 @@
     /* ================= Vie de la scène ================= */
     update(dt, ctx) {
       const eff = (ctx && ctx.effect) || 'none';
-      if (eff !== this.effect) this.build(eff);
+      // night absent (caméra d'ouverture) : on garde l'état courant.
+      const night = ctx && 'night' in ctx ? !!ctx.night : this.night;
+      if (eff !== this.effect || night !== this.night) this.build(eff, night);
       const { W, H, L, look } = this;
       this.t += dt;
       const t = this.t;
@@ -2463,7 +2573,7 @@
           if (a < 0.2) continue;
           const near = clamp01((p[1] - H * 0.62) / (H * 0.2));
           if (look.caps) {
-            g.fillStyle = `rgba(230,236,240,${(0.75 * a).toFixed(2)})`;
+            g.fillStyle = look.nightWx ? `rgba(160,170,190,${(0.5 * a).toFixed(2)})` : `rgba(230,236,240,${(0.75 * a).toFixed(2)})`;
             g.fillRect(p[0], p[1], 1 + Math.floor(near * 3), 1);
           } else {
             g.fillStyle = `rgba(255,255,250,${(look.glitter * a).toFixed(2)})`;
@@ -2478,7 +2588,7 @@
         const step = Math.floor(t * 5);
         for (const l of shore) {
           const sh = this.shoreY(l.x);
-          const len = Math.round((look.night ? 14 : 8) * l.k);
+          const len = Math.round((look.night ? 14 : 8) * l.k * (look.reflK || 1));
           for (let j = 1; j < len; j++) {
             const hh = hash(l.x, j + step * 7, 410);
             if (hh < 0.35) continue;
@@ -2517,7 +2627,7 @@
       }
       // Ronds de pluie.
       if (this.rings.length) {
-        g.fillStyle = 'rgba(200,214,226,0.55)';
+        g.fillStyle = look.nightWx ? 'rgba(150,160,186,0.4)' : 'rgba(200,214,226,0.55)';
         for (const r of this.rings) {
           const k = 1 + Math.floor(r.age * 5);
           g.fillRect(r.x - k, r.y, 1, 1);
@@ -2626,6 +2736,27 @@
         const lean = sw > 0.8 ? 1 : sw < -0.8 ? -1 : 0;
         g.fillRect(m.x, m.y - m.h + 2, 1, m.h - 2);
         g.fillRect(m.x + lean, m.y - m.h, 1, 2);
+      }
+      // La nuit (météo en direct) : les feux de mouillage en tête de mât des bateaux à quai,
+      // et une veilleuse dans quelques cabines.
+      if (look.nightWx) {
+        g.globalCompositeOperation = 'lighter';
+        for (const m of this.masts || []) {
+          const h = hash(m.x, m.y, 240);
+          if (h > 0.6) continue;
+          const sw = Math.sin(t * 0.9 + m.p) + Math.sin(t * 2.1 + m.p * 2) * 0.4;
+          const lean = sw > 0.8 ? 1 : sw < -0.8 ? -1 : 0;
+          const a = 0.75 + 0.2 * Math.sin(t * 1.7 + m.p * 3);
+          g.fillStyle = h < 0.2 ? `rgba(255,214,150,${a.toFixed(2)})` : `rgba(235,240,255,${a.toFixed(2)})`;
+          g.fillRect(m.x + lean, m.y - m.h, 1, 1);
+          g.fillStyle = 'rgba(255,220,170,0.12)';
+          g.fillRect(m.x + lean - 1, m.y - m.h - 1, 3, 3);
+          if (h < 0.3) {
+            g.fillStyle = 'rgba(255,190,110,0.55)';
+            g.fillRect(m.x, m.y, 1, 1);
+          }
+        }
+        g.globalCompositeOperation = 'source-over';
       }
       if (this.pier) {
         for (const w of this.walkers) {

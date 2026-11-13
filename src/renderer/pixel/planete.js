@@ -249,6 +249,80 @@
     },
   };
 
+  /* ================= Version nuit de chaque temps (météo en direct, la nuit) =================
+   * La nuit garde les conséquences du temps (plafond de nuages et flaques sous la pluie,
+   * éclairs violets de l'orage, neige posée et cascades gelées, arbres en fleurs, feuillages
+   * roux) mais prend la lumière des nuits de la scène (lucioles, pluie d'étoiles) : la géante
+   * vue de nuit (mince croissant éclairé, anneaux bleutés), plus de soleil ni de rayons, la
+   * ville de flèches, les panneaux des ruines et les plantes qui luisent. Ciel dégagé (none,
+   * sakura, leaves) : étoiles, nébuleuse et petite lune ; ciel couvert (rain, snow, storm) :
+   * ni lune ni étoiles, la planète devinée derrière les nuages. Pas de créatures volantes ni
+   * de poussière dorée (vie de jour) ; les vaisseaux passent avec leurs feux. */
+  const NIGHT_FX = ['fireflies', 'starfall'];
+  const F = LOOKS.fireflies;
+  // Ce que toutes les nuits « météo » partagent (reprend la nuit des lucioles).
+  const NIGHT_BASE = {
+    sky: F.sky, glow: F.glow, glow2: F.glow2, glowK: F.glowK, glowR: F.glowR, glowRy: F.glowRy, band: F.band, sun: false,
+    haze: F.haze, hazeW: F.hazeW, mesa: F.mesa, rim: F.rim, rimK: F.rimK,
+    sand: F.sand, rock: F.rock, grass: F.grass, leaf: F.leaf,
+    bulb: F.bulb, bulbK: 0.85, panel: F.panel, panelK: 0.95,
+    planet: 'night', planetVis: 1, veil: 0.06, ring: F.ring,
+    stars: 130, nebula: 0.6, clouds: 'none', cloud: F.cloud,
+    amb: F.amb, desat: F.desat, rays: 0, beam: 1, ships: true, flyers: false, dust: false, falls: 'flow',
+    night: true, nightWx: true, spores: false, petals: false, meteors: false,
+  };
+  // Ce qui change d'une nuit à l'autre.
+  const NIGHT_LOOKS = {
+    // Nuit calme et claire : la géante, la lune, la nébuleuse, les étoiles.
+    none: {},
+    // Nuit de printemps : ciel mauve, arbres en fleurs qui luisent rose, quelques pétales.
+    sakura: {
+      sky: ['#07051c', '#0a0722', '#0e0a2a', '#130e32', '#18123a', '#1e1742', '#251c48', '#2c224c', '#33284e', '#3a2e50'],
+      glow: '#3a2a5a', glow2: '#5a4a7a', haze: '#261e44', hazeW: '#2e2650', rim: '#a87ad0',
+      leaf: LOOKS.sakura.leaf, bloom: LOOKS.sakura.bloom, bulb: LOOKS.sakura.bulb,
+      amb: [0.36, 0.32, 0.56], petals: true, stars: 110, nebula: 0.55,
+    },
+    // Nuit d'automne : horizon ambré, feuillages roux, plantes qui luisent orangé.
+    leaves: {
+      sky: ['#05051a', '#08081f', '#0b0b25', '#0f0f2a', '#131330', '#181734', '#1e1c38', '#24203a', '#2a243a', '#30283a'],
+      glow: '#4a3430', glow2: '#6a4a3a', haze: '#221e3a', hazeW: '#3a2c38', rim: '#d0905a', rimK: 0.3,
+      sand: ['#0c0a16', '#151222', '#1e1a2c', '#2a2436', '#3a3040'],
+      grass: LOOKS.leaves.grass, leaf: LOOKS.leaves.leaf, bulb: LOOKS.leaves.bulb, autumn: true,
+      amb: [0.38, 0.32, 0.46], stars: 100, nebula: 0.45,
+    },
+    // Nuit de pluie : plafond bas éclairé par en dessous (ville, faisceau), flaques.
+    rain: {
+      sky: ['#05060f', '#070914', '#0a0c18', '#0d101c', '#101420', '#141826', '#181d2c', '#1c2232', '#202836', '#242e3a'],
+      haze: '#1a2034', hazeW: '#20304a',
+      cloud: ['#06071a', '#0a0c20', '#10142a', '#182236', '#26344a'], clouds: 'overcast',
+      stars: 0, nebula: 0, noMoon: true, planetVis: 0.55, veil: 0.42, glowK: 0.32,
+      desat: 0.3, wet: true, mist: true, bulbK: 0.9, panelK: 1,
+    },
+    // Nuit d'orage : encore plus noire, la planète à peine devinée, éclairs violets.
+    storm: {
+      sky: ['#030409', '#04050c', '#06070f', '#080a13', '#0a0c17', '#0d0f1b', '#10121f', '#131524', '#161828', '#1a1c2c'],
+      haze: '#161a2c', hazeW: '#1c2236', mesa: '#06070f',
+      cloud: ['#030410', '#060716', '#0a0c1c', '#101426', '#1a1e32'], clouds: 'storm',
+      glow: '#1e2440', glow2: '#2a3252', stars: 0, nebula: 0, noMoon: true, planetVis: 0.3, veil: 0.6, glowK: 0.3, rimK: 0.25,
+      amb: [0.24, 0.28, 0.46], desat: 0.35, wet: true, storm: true, mist: true, ships: false, bulbK: 0.9, panelK: 1,
+    },
+    // Nuit de neige : la neige posée, bleutée, éclairée par en dessous ; cascades gelées.
+    snow: {
+      sky: ['#070914', '#0a0c19', '#0d101e', '#111423', '#151928', '#1a1e2e', '#1f2434', '#252a3a', '#2a3040', '#303646'],
+      haze: '#262e48', hazeW: '#2c3650', mesa: '#10142a', rim: '#8ab4e0', rimK: 0.3,
+      sand: LOOKS.snow.sand, rock: LOOKS.snow.rock, grass: LOOKS.snow.grass, leaf: LOOKS.snow.leaf, bulb: LOOKS.snow.bulb,
+      cloud: ['#0c0e1e', '#141828', '#1e2434', '#2a3244', '#3a4456'], clouds: 'overcast',
+      stars: 0, nebula: 0, noMoon: true, planetVis: 0.6, veil: 0.4,
+      amb: [0.36, 0.4, 0.58], desat: 0.3, snow: true, falls: 'frozen',
+    },
+  };
+  // L'ambiance d'un temps, de jour ou de nuit. fireflies et starfall sont déjà des nuits.
+  function lookFor(effect, night) {
+    const day = LOOKS[effect] || LOOKS.none;
+    if (!night || NIGHT_FX.includes(effect)) return day;
+    return { ...NIGHT_BASE, ...(NIGHT_LOOKS[effect] || NIGHT_LOOKS.none) };
+  }
+
   /* ================= Les mesas, par rangée (loin → près) =================
    * c : centre (fraction de W), w : demi-largeur du sommet (fraction de W), h : hauteur
    * (fraction de H, depuis la base de la rangée). kind : 'spire' (aiguille coiffée),
@@ -306,6 +380,7 @@
       this.fast = X.fastTest();
       this.t = 0;
       this.effect = null;
+      this.night = false;
       this.build('none');
     }
 
@@ -350,9 +425,11 @@
     }
 
     /* ---------- Construction des calques ---------- */
-    build(effect) {
+    // night : version nuit de ce temps (météo en direct, la nuit).
+    build(effect, night = false) {
       this.effect = effect;
-      const look = (this.look = LOOKS[effect] || LOOKS.none);
+      this.night = night;
+      const look = (this.look = lookFor(effect, night));
       this.skyStops = look.sky.map(C);
       this.glowC = C(look.glow);
       this.glow2C = C(look.glow2);
@@ -392,7 +469,9 @@
       this.paintStars(r);
       if (look.sun) this.paintSun(r);
       if (look.clouds === 'wisps') this.paintWisps(r);
-      this.paintMoon(r);
+      // Sous un ciel couvert, la nuit, pas de lune.
+      if (look.noMoon) this.glowList = [];
+      else this.paintMoon(r);
       return r;
     }
 
@@ -991,7 +1070,8 @@
           const n = fbm(x * 0.03, y * 0.25, 392, 2);
           if (n > 0.62) {
             const sky = this.skyAt(x, Math.max(0, this.L.hz * 2 - y * 1.1));
-            r.set(x, y, mix(sky, [255, 255, 255], hash(x, y, 393) < 0.05 ? 0.25 : 0.05));
+            if (this.look.nightWx) r.set(x, y, mix(sky, C(this.look.panel), hash(x, y, 393) < 0.05 ? 0.3 : 0.1));
+            else r.set(x, y, mix(sky, [255, 255, 255], hash(x, y, 393) < 0.05 ? 0.25 : 0.05));
           }
         }
       }
@@ -1584,7 +1664,8 @@
         for (let j = 1; j < 3; j++) {
           const y = ty + j;
           const sky = this.skyAt(x, Math.max(0, this.L.hz - (y - this.L.hz) * 2));
-          r.set(x, y, mix(sky, [255, 255, 255], 0.1));
+          // La nuit, les flaques renvoient aussi la lueur cyan des plantes.
+          r.set(x, y, this.look.nightWx ? mix(mix(sky, C(this.look.bulb), 0.22), [255, 255, 255], 0.06) : mix(sky, [255, 255, 255], 0.1));
           if (j === 1) this.puddles.push({ x, y });
         }
       }
@@ -1868,7 +1949,9 @@
 
     update(dt, ctx) {
       const eff = (ctx && ctx.effect) || 'none';
-      if (eff !== this.effect) this.build(eff);
+      // night absent (caméra d'ouverture) : on garde l'état courant.
+      const night = ctx && 'night' in ctx ? !!ctx.night : this.night;
+      if (eff !== this.effect || night !== this.night) this.build(eff, night);
       const { W, H, L, look } = this;
       this.t += dt;
       const t = this.t;
@@ -2375,7 +2458,7 @@
 
     drawPetals(g, t) {
       for (const p of this.petals) {
-        g.fillStyle = p.c ? '#ffb0d8' : '#ff8ac4';
+        g.fillStyle = this.look.nightWx ? (p.c ? '#b07aa8' : '#9a6496') : p.c ? '#ffb0d8' : '#ff8ac4';
         const flip = Math.sin(t * 3 + p.p) > 0;
         g.fillRect(Math.round(p.x), Math.round(p.y), flip ? 1 : 2, 1);
       }
@@ -2383,7 +2466,7 @@
 
     drawPuddleRings(g, t) {
       if (!this.puddles.length) return;
-      g.fillStyle = 'rgba(210,220,240,0.5)';
+      g.fillStyle = this.look.nightWx ? 'rgba(140,160,200,0.4)' : 'rgba(210,220,240,0.5)';
       const n = Math.min(6, Math.floor(this.puddles.length / 40) + 2);
       for (let k = 0; k < n; k++) {
         const ph = t * 1.7 + k * 1.37;

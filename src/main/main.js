@@ -350,7 +350,7 @@ function scheduleStill(layer) {
   const s = settings.get();
   const scene = PAL.resolve(s.wallpaper, s.effect);
   // L'image fixe dépend de la scène ET du temps choisi (neige, pluie…).
-  const key = scene && `${scene}-${s.effect}${layer.display.id === screen.getPrimaryDisplay().id && s.stickers.length ? `-${stickerStore.signature(s.stickers)}` : ''}`;
+  const key = scene && `${scene}-${s.effect}${s.night ? '-nuit' : ''}${layer.display.id === screen.getPrimaryDisplay().id && s.stickers.length ? `-${stickerStore.signature(s.stickers)}` : ''}`;
   if (!key || key === layer.stillKey || key === layer.pendingKey || isPaused()) return;
   layer.pendingKey = key;
   clearTimeout(layer.stillTimer);
@@ -858,6 +858,8 @@ function applySettings(patch, { toast = false } = {}) {
   const before = settings.get();
   // Choisir un temps à la main désactive la météo réelle.
   if ('effect' in patch && !('realWeather' in patch)) patch = { ...patch, realWeather: false };
+  // Sans la météo en direct, plus d'heure réelle : la scène suit l'effet choisi (jour/nuit compris).
+  if (patch.realWeather === false) patch = { ...patch, night: false };
   const after = settings.set(patch);
   broadcastState();
   rebuildMenu();
@@ -969,14 +971,14 @@ async function updateLockVideo() {
       return;
     }
     const key = PAL.resolve(s.wallpaper !== 'off' ? s.wallpaper : 'auto', s.effect) || 'cafe';
-    const id = `${key}-${s.effect}`;
+    const id = `${key}-${s.effect}${s.night ? '-nuit' : ''}`;
     if (id === lockKeyDone) return;
     const dir = LOCK_DIR();
     await fs.promises.mkdir(dir, { recursive: true });
     const out = path.join(dir, `brume-${id}.mov`);
     const t0 = Date.now();
     setLockState('filming');
-    await lockscreen.render({ key, effect: s.effect, out, preload: PRELOAD, page: path.join(__dirname, '../renderer/intro.html') });
+    await lockscreen.render({ key, effect: s.effect, night: s.night, out, preload: PRELOAD, page: path.join(__dirname, '../renderer/intro.html') });
     const res = await lockscreen.install(out, path.join(dir, 'originaux'));
     await fs.promises.rm(out, { force: true });
     settings.set({ lockScreenSaved: { assetID: res.assetID } });
@@ -1006,8 +1008,9 @@ async function refreshRealWeather() {
     const w = await weather.current(place && place.city ? place : null);
     live = { state: 'ok', city: w.city, temperature: w.temperature, code: w.code, isDay: w.isDay, at: w.at, auto: w.auto };
     if (!settings.get().realWeather) return sendPanelState();
-    const changed = settings.get().effect !== w.effect;
-    settings.set({ effect: w.effect, wind: w.wind, intensity: w.intensity });
+    const night = !w.isDay;
+    const changed = settings.get().effect !== w.effect || settings.get().night !== night;
+    settings.set({ effect: w.effect, wind: w.wind, intensity: w.intensity, night });
     if (changed && settings.get().lockScreen) scheduleLockVideo();
     broadcastState();
     rebuildMenu();
@@ -1064,7 +1067,7 @@ function playIntro(force) {
   intro = { win, startedAt: Date.now(), from: null };
   win.webContents.on('did-finish-load', () => {
     win.showInactive();
-    send(intro, 'command', { type: 'intro', key, effect: s.effect, name: accountName() });
+    send(intro, 'command', { type: 'intro', key, effect: s.effect, night: s.night, name: accountName() });
   });
   win.loadFile(path.join(__dirname, '../renderer/intro.html'));
   intro.safety = setTimeout(endIntro, 20000); // filet de sécurité

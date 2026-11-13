@@ -61,7 +61,7 @@ function render(opts) {
   return opts.outArgs ? renderFfmpeg(opts) : renderHevc(opts);
 }
 
-function renderHevc({ key, effect, preload, page, out, W = 427, H = 240, fps = 30, seconds = 30 }) {
+function renderHevc({ key, effect, night = false, preload, page, out, W = 427, H = 240, fps = 30, seconds = 30 }) {
   if (active) return Promise.reject(new Error('enregistrement déjà en cours'));
   return new Promise((resolve, reject) => {
     const win = new BrowserWindow({ show: false, width: W, height: H, webPreferences: { preload, contextIsolation: true, sandbox: true, backgroundThrottling: false } });
@@ -74,12 +74,12 @@ function renderHevc({ key, effect, preload, page, out, W = 427, H = 240, fps = 3
       else resolve(out);
     };
     active = { ff: null, win, out, info: null, finish };
-    win.webContents.on('did-finish-load', () => win.webContents.send('command', { type: 'record', key, effect, fps, seconds, W, H, encode: 'hevc' }));
+    win.webContents.on('did-finish-load', () => win.webContents.send('command', { type: 'record', key, effect, night, fps, seconds, W, H, encode: 'hevc' }));
     win.loadFile(page);
   });
 }
 
-function renderFfmpeg({ key, effect, preload, page, out, W = 427, H = 240, fps = 30, seconds = 30, outArgs = null }) {
+function renderFfmpeg({ key, effect, night = false, preload, page, out, W = 427, H = 240, fps = 30, seconds = 30, outArgs = null }) {
   if (!FFMPEG) return Promise.reject(new Error('ffmpeg introuvable'));
   if (active) return Promise.reject(new Error('enregistrement déjà en cours'));
   return new Promise((resolve, reject) => {
@@ -99,7 +99,7 @@ function renderFfmpeg({ key, effect, preload, page, out, W = 427, H = 240, fps =
     };
     ff.on('close', (code) => finish(code === 0 ? null : new Error(`ffmpeg (${code}) : ${err.trim()}`)));
     ff.on('error', finish);
-    win.webContents.on('did-finish-load', () => win.webContents.send('command', { type: 'record', key, effect, fps, seconds, W, H }));
+    win.webContents.on('did-finish-load', () => win.webContents.send('command', { type: 'record', key, effect, night, fps, seconds, W, H }));
     win.loadFile(page);
   });
 }

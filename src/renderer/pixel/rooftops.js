@@ -231,6 +231,79 @@
     },
   };
 
+  /* ================= La nuit ================= *
+   * Avec la « Météo actuelle », Brume dit aussi à la scène s'il fait nuit. Chaque temps a alors
+   * sa version nuit : on garde ses conséquences (neige posée, toit mouillé et reflets, éclairs,
+   * arbre en fleurs ou roux, feuilles au sol), mais avec le ciel, la lumière et la vie d'une
+   * nuit, dans les tons des nuits de la scène (fireflies, starfall) : plus de soleil couché,
+   * des fenêtres allumées, la lune et les étoiles seulement si le ciel est dégagé, la ville
+   * qui éclaire les nuages bas par en dessous, des chauves-souris au lieu des oiseaux.
+   * city / cityK : lueur de la ville au ras de l'horizon ; snowC : neige bleutée de la nuit ;
+   * bats : chauves-souris ; cityWin : part des fenêtres allumées dans la ville lointaine. */
+  const NIGHT = {
+    none: {
+      sky: LOOKS.fireflies.sky,
+      glow: '#6a4a7a', glowK: 0.1, clouds: 'thin', cloud: LOOKS.fireflies.cloud,
+      far: LOOKS.fireflies.far, haze: LOOKS.fireflies.haze, stars: 75, moon: true,
+      amb: LOOKS.fireflies.amb, desat: 0.1, rim: LOOKS.fireflies.rim, winLit: 0.7,
+      city: '#7a4a62', cityK: 0.16, bats: true, cityWin: 0.13,
+    },
+    rain: {
+      sky: ['#06081a', '#080b1e', '#0b0f24', '#0f1429', '#13192f', '#181e35', '#1e223a', '#262840', '#2e2e46', '#38344c'],
+      glow: '#6a4a5e', glowK: 0.1, clouds: 'overcast',
+      cloud: ['#0a0d1e', '#0f1326', '#161b30', '#20253c', '#3a3448', '#5e4a5a'],
+      far: '#181c38', haze: '#38344e', stars: 0,
+      amb: [0.54, 0.6, 0.86], desat: 0.35, rim: '#9aa4d6', winLit: 0.8,
+      city: '#8a5a5e', cityK: 0.22, cityWin: 0.14,
+    },
+    storm: {
+      sky: ['#04050f', '#050712', '#070a17', '#0a0e1c', '#0d1222', '#111628', '#161a2e', '#1c1e34', '#24243a', '#2c2a40'],
+      glow: '#5a4258', glowK: 0.08, clouds: 'overcast',
+      cloud: ['#06081a', '#0a0d20', '#10142a', '#181d34', '#2c2a40', '#4a3e52'],
+      far: '#121630', haze: '#2c2a44', stars: 0,
+      amb: [0.46, 0.52, 0.78], desat: 0.45, rim: '#8e9ad0', winLit: 0.85,
+      city: '#7a4e58', cityK: 0.2, cityWin: 0.12,
+    },
+    snow: {
+      sky: ['#0c0e26', '#10132c', '#141832', '#1a1e3a', '#202542', '#282c4c', '#323456', '#3e3e60', '#4a4868', '#585270'],
+      glow: '#8a6a86', glowK: 0.14, clouds: 'overcast',
+      cloud: ['#12152e', '#181c38', '#212644', '#2c3050', '#463e5c', '#6c5a72'],
+      far: '#262a4e', haze: '#56506e', stars: 0,
+      amb: [0.64, 0.7, 0.96], desat: 0.25, rim: '#c4ccf0', winLit: 0.85,
+      city: '#9a6a7a', cityK: 0.24, cityWin: 0.15, snowC: ['#c2cae8', '#8e96bc'],
+    },
+    sakura: {
+      sky: ['#0b0b2c', '#0f1038', '#141642', '#1b1c4c', '#242354', '#2e295c', '#3a3062', '#463666', '#543c6a', '#62426e'],
+      glow: '#8a5a8a', glowK: 0.1, clouds: 'thin',
+      cloud: ['#14163c', '#1a1d46', '#232650', '#2e2e5c', '#3e3a6a', '#56487c'],
+      far: '#1e1f4c', haze: '#4c3a68', stars: 55, moon: true,
+      amb: [0.64, 0.64, 0.92], desat: 0.06, rim: '#d4b0e8', winLit: 0.65,
+      city: '#8a5070', cityK: 0.14, bats: true, cityWin: 0.12,
+      treeRamp: ['#2c1c48', '#4e2c62', '#7a4282', '#a8609e', '#d896be'],
+    },
+    leaves: {
+      sky: ['#09091f', '#0d0c27', '#121030', '#181438', '#1f183e', '#281c44', '#312048', '#3c244a', '#48294c', '#542e4e'],
+      glow: '#7a4a5a', glowK: 0.12, clouds: 'thin',
+      cloud: ['#110f2a', '#171434', '#1f1a3e', '#292048', '#382a54', '#4e3660'],
+      far: '#1c183c', haze: '#4a2e50', stars: 45, moon: true,
+      amb: [0.68, 0.6, 0.84], desat: 0.04, rim: '#d0a8d4', winLit: 0.7,
+      city: '#8a4e50', cityK: 0.16, bats: true, cityWin: 0.12,
+      treeRamp: ['#2a1226', '#4c1c2a', '#76302a', '#a04c30', '#cc7440'],
+    },
+  };
+  // Version nuit d'un temps (fireflies et starfall sont déjà des nuits : inchangés).
+  function nightLook(effect) {
+    if (effect === 'fireflies' || effect === 'starfall') return LOOKS[effect];
+    const base = LOOKS[effect] || LOOKS.none;
+    return { ...base, ...(NIGHT[effect] || NIGHT.none), birds: false, night: true };
+  }
+
+  // Chauves-souris (nuits claires) : ailes hautes, ailes basses.
+  const BAT = [
+    ['b.....b', 'bb.b.bb', '.bbbbb.', '...b...'],
+    ['.......', '..bbb..', '.bbbbb.', 'b..b..b'],
+  ];
+
   /* ================= Palette du décor (crépuscule), étalonnée ensuite par ambiance ================= */
   const PAL = {
     tile: ['#2c2644', '#3a3456', '#463f63', '#524a70', '#61597e', '#746b8e'],
@@ -786,7 +859,12 @@
         this.nextBolt = 1.2;
         this.cat.timer = 0.5;
       }
+      // Chauves-souris des nuits claires (sans hasard ici : le décor ne doit pas changer).
+      this.bats = [];
+      this.nextBat = this.fast ? 0.4 : 4;
+      this.batImgs = BAT.map((rows) => B.PX.sprite(rows, { b: '#0a0814' }));
       this.effect = null;
+      this.night = false;
       this.build('none');
     }
 
@@ -814,9 +892,11 @@
     }
 
     /* ---------- Construction des calques ---------- */
-    build(effect) {
+    // night : version nuit de ce temps (météo en direct, la nuit).
+    build(effect, night = false) {
       this.effect = effect;
-      const look = (this.look = LOOKS[effect] || LOOKS.none);
+      this.night = night;
+      const look = (this.look = night ? nightLook(effect) : LOOKS[effect] || LOOKS.none);
       const amb = look.amb;
       const d = look.desat || 0;
       this.grade = (h) => {
@@ -852,6 +932,10 @@
       this.coopImgs = [['.hh.', 'hwww', '.www'], ['hh..', 'hwww', '.www'], ['....', 'hwww', 'dwww']].map((rows) => B.PX.sprite(rows, pg));
       this.flock.o.color = '#f6eef8';
       this.flock.frames = X.birdSprites('#f6eef8');
+      // La nuit, fumée et buée plus sombres (elles ne sont plus éclairées par le couchant).
+      this.smoke.color = this.smoke2.color = look.night ? '120,114,150' : '210,200,225';
+      this.breath.color = look.night ? '196,200,228' : '240,240,250';
+      if (!look.bats) this.bats = [];
       this.flies = look.fireflies ? Array.from({ length: this.wide ? Math.round((14 * (this.W + this.extL + this.extR)) / this.W) : 14 }, () => this.newFly()) : [];
       const c = this.cat;
       c.x = Math.round(lerp(this.catRidge.x0, this.catRidge.x1, 0.3));
@@ -874,6 +958,18 @@
           if (dd >= 1) continue;
           const q = Math.floor((1 - dd) ** 1.6 * 6 + bayer(x, y) * 0.95) / 6;
           if (q > 0) r.tint(x, y, glow, q * look.glowK);
+        }
+      }
+      // La nuit : la ville éclaire le bas du ciel (et le dessous des nuages, voir leurs tons).
+      if (look.city) {
+        const city = C(look.city);
+        const span = Math.round(L.hz * 0.62);
+        for (let y = L.hz + 4 - span; y < L.hz + 4; y++) {
+          const u = 1 - (L.hz + 4 - y) / span;
+          for (let x = r.x0; x < r.x1; x++) {
+            const q = Math.floor(u * u * 6 + bayer(x, y) * 0.95) / 6;
+            if (q > 0) r.tint(x, y, city, q * look.cityK);
+          }
         }
       }
       // Voie lactée et étoiles.
@@ -1048,7 +1144,7 @@
         for (let xx = x; xx < x + w; xx++) r.tint(xx, top, haze, 0.35);
         for (let wy = top + 3; wy < base - 2; wy += 3) {
           for (let wx = x + 1; wx < x + w - 1; wx += 2) {
-            if (R() < 0.09) {
+            if (R() < (look.cityWin || 0.09)) {
               const off = css(r.get(wx, wy));
               r.set(wx, wy, win);
               if (wy < L.hz - 2 && skyWins.length < maxWins && R() < 0.4) skyWins.push({ x: wx, y: wy, lit: true, off });
@@ -1367,7 +1463,7 @@
             const wx = Math.round(x0 + (x1 - x0) * u);
             const wy = Math.round(y0 + (y1 - y0) * u + sag * 4 * u * (1 - u));
             r.set(wx, wy, wire);
-            if (look.snow && hash(wx, wy, 13) > 0.72) r.set(wx, wy - 1, C('#dcdcee'));
+            if (look.snow && hash(wx, wy, 13) > 0.72) r.set(wx, wy - 1, C(look.snowC ? look.snowC[0] : '#dcdcee'));
           }
         }
       };
@@ -1473,7 +1569,8 @@
     paintTree(r, R) {
       const { L, look } = this;
       const ramp = look.tree === 'sakura' ? ['#7a4a7a', '#b06a96', '#e094b6', '#f8bcd0', '#ffe0ea'] : ['#5a2030', '#8e3628', '#c85a2a', '#ee8a34', '#ffc060'];
-      const cols = ramp.map(C);
+      // La nuit : l'arbre a sa propre rampe, plus sombre, éclairée par la lune.
+      const cols = (look.treeRamp || ramp).map(C);
       const tx = L.cx + 70;
       const ty = L.ridge - 24;
       const trunk = this.grade('#2a1c2c');
@@ -1668,7 +1765,7 @@
       // Lumière chaude des fenêtres et des lanternes, peinte sur tout le premier plan.
       const lights = this.lamps.filter((l) => !l.small).map((l) => ({ x: l.x, y: l.y, r: l.r, k: l.k }));
       const extra = this.extLamps.filter((l) => !l.small).map((l) => ({ x: l.x, y: l.y, r: l.r, k: l.k }));
-      applyLight(r, lights, [0.96, 0.95, 1], [0.7, 0.42, 0.18], (x, yy) => !glow[r.i(x, yy)], extra);
+      applyLight(r, lights, [0.96, 0.95, 1], look.night ? [0.86, 0.52, 0.24] : [0.7, 0.42, 0.18], (x, yy) => !glow[r.i(x, yy)], extra);
       return r;
     }
 
@@ -1879,7 +1976,7 @@
         const w = kind === 'sock' ? 3 : kind === 'shirt' ? 9 : kind === 'towel' ? 8 : kind === 'dress' ? 8 : 12;
         if (x + w > xb - 3) break;
         const u = (x + w / 2 - xa) / n;
-        this.laundry.push({ x, y: Math.round(ty + 1 + 5 * 4 * u * (1 - u)) + 1, w, kind, c: look.wet ? mix(C(cols[i % cols.length]), [60, 60, 90], 0.3) : C(cols[(i + 3) % cols.length]), p: R() * 6 });
+        this.laundry.push({ x, y: Math.round(ty + 1 + 5 * 4 * u * (1 - u)) + 1, w, kind, c: this.nightTone(look.wet ? mix(C(cols[i % cols.length]), [60, 60, 90], 0.3) : C(cols[(i + 3) % cols.length])), p: R() * 6 });
         x += w + 2 + Math.floor(R() * 3);
         i++;
       }
@@ -2019,8 +2116,9 @@
     // Neige posée sur tout ce qui regarde vers le haut.
     snowCaps(r, y0, y1, glow) {
       const { W } = this;
-      const S1 = C('#eceef8');
-      const S2 = C('#c4c6dc');
+      // La nuit, neige bleutée (les lampes la réchauffent ensuite : voir applyLight).
+      const S1 = C(this.look.snowC ? this.look.snowC[0] : '#eceef8');
+      const S2 = C(this.look.snowC ? this.look.snowC[1] : '#c4c6dc');
       for (let y = Math.max(1, y0); y < y1; y++) {
         for (let x = r.x0; x < r.x1; x++) {
           if (r.alpha(x, y) !== 255 || r.alpha(x, y - 1) !== 0) continue;
@@ -2054,16 +2152,39 @@
     wetShine(r) {
       const { W, L } = this;
       const sheen = mix(C(this.look.sky[8]), this.rim, 0.45);
+      // La nuit, les ardoises mouillées reflètent aussi les fenêtres et la lanterne : reflet
+      // chaud près des lampes (celles du prolongement seulement hors de l'écran).
+      const night = this.look.night;
+      const own = this.lamps.filter((l) => !l.small);
+      const all = own.concat(this.extLamps.filter((l) => !l.small));
+      const shine = (x, y) => {
+        if (!night) return sheen;
+        let I = 0;
+        for (const l of x >= 0 && x < W ? own : all) {
+          const dx = (x - l.x) * 0.7;
+          const dy = y - l.y;
+          I += l.k / (1 + (dx * dx + dy * dy) / (l.r * l.r * 1.6));
+        }
+        return mix(sheen, [255, 196, 128], Math.min(0.85, I * 1.1));
+      };
       // Le bord de chaque rang d'ardoises brille, par endroits, du reflet du ciel.
       for (const tr of this.tileRows || []) {
         const ly = tr.y + tr.h - 1;
         for (let x = r.x0; x < r.x1; x++) {
           const n = noise(x * 0.08, tr.y * 0.7, 31);
-          if (n > 0.5) r.tint(x, ly, sheen, Math.min(0.6, (n - 0.5) * 1.6));
-          if (n > 0.7 && tr.h > 3) r.tint(x, ly - 1, sheen, 0.2);
+          if (n > 0.5) r.tint(x, ly, shine(x, ly), Math.min(0.6, (n - 0.5) * 1.6));
+          if (n > 0.7 && tr.h > 3) r.tint(x, ly - 1, shine(x, ly - 1), 0.2);
         }
       }
-      for (let x = r.x0; x < r.x1; x++) if (hash(x, 4, 4) > 0.45) r.set(x, L.seat + 1, mix(sheen, [255, 255, 255], 0.2));
+      for (let x = r.x0; x < r.x1; x++) if (hash(x, 4, 4) > 0.45) r.set(x, L.seat + 1, mix(shine(x, L.seat + 1), [255, 255, 255], 0.2));
+    }
+
+    // La nuit : une couleur peinte telle quelle (fleurs, feuilles, linge) prend la lumière
+    // bleutée de la nuit. Le jour, elle ne change pas.
+    nightTone(c) {
+      const look = this.look;
+      if (!look.night) return c;
+      return [Math.min(255, c[0] * look.amb[0] * 1.08), Math.min(255, c[1] * look.amb[1] * 1.08), Math.min(255, c[2] * look.amb[2] * 1.08)];
     }
 
     paintLitter(r, R) {
@@ -2072,7 +2193,7 @@
       for (let k = 0; k < W * 0.22; k++) {
         const x = Math.floor(R() * W);
         const y = L.ridge + 3 + Math.floor(Math.pow(R(), 0.6) * (L.seat - L.ridge - 3));
-        const c = C(cols[Math.floor(R() * cols.length)]);
+        const c = this.nightTone(C(cols[Math.floor(R() * cols.length)]));
         r.set(x, y, c);
         if (look.litter === 'leaves' && R() < 0.5) r.set(x + 1, y, c);
       }
@@ -2084,7 +2205,7 @@
             const u = Math.floor(RL() * (this.extL + this.extR));
             const x = u < this.extL ? -1 - u : W + u - this.extL;
             const y = L.ridge + 3 + Math.floor(Math.pow(RL(), 0.6) * (L.seat - L.ridge - 3));
-            const c = C(cols[Math.floor(RL() * cols.length)]);
+            const c = this.nightTone(C(cols[Math.floor(RL() * cols.length)]));
             r.set(x, y, c);
             if (look.litter === 'leaves' && RL() < 0.5) r.set(x + 1, y, c);
           }
@@ -2141,7 +2262,9 @@
     /* ================= Vie de la scène ================= */
     update(dt, ctx) {
       const eff = (ctx && ctx.effect) || 'none';
-      if (eff !== this.effect) this.build(eff);
+      // night absent (caméra d'ouverture) : on garde l'état courant.
+      const night = ctx && 'night' in ctx ? !!ctx.night : this.night;
+      if (eff !== this.effect || night !== this.night) this.build(eff, night);
       const { L, W, look } = this;
       this.t += dt;
       const t = this.t;
@@ -2152,6 +2275,7 @@
         if (c.x > W + 4 + this.extR) c.x = -c.w - 4 - this.extL;
       }
       if (look.birds) this.flock.update(dt);
+      if (look.bats) this.updateBats(dt);
       this.updateCat(dt);
       this.updateCouple(dt);
 
@@ -2244,6 +2368,28 @@
           this.nextBolt = 6 + Math.random() * 12;
         }
       }
+    }
+
+    // Chauves-souris : elles passent en zigzag au-dessus des toits, seules ou à deux.
+    updateBats(dt) {
+      const { W, L } = this;
+      this.nextBat -= dt;
+      if (this.nextBat <= 0) {
+        const dir = Math.random() < 0.5 ? 1 : -1;
+        const n = Math.random() < 0.35 ? 2 : 1;
+        const y0 = 14 + Math.random() * (L.hz * 0.5);
+        for (let k = 0; k < n; k++) {
+          this.bats.push({ x: dir > 0 ? -this.extL - 10 - k * 14 : W + this.extR + 4 + k * 14, y0: y0 + k * 6, y: y0, dir, v: 22 + Math.random() * 10, t: Math.random() * 6, ph: Math.random() * 6 });
+        }
+        this.nextBat = this.fast ? 1.5 : 9 + Math.random() * 16;
+      }
+      for (const b of this.bats) {
+        b.t += dt;
+        // Vol saccadé : vitesse qui varie, petits crochets verticaux.
+        b.x += b.dir * b.v * dt * (0.7 + 0.5 * Math.abs(Math.sin(b.t * 2.3 + b.ph)));
+        b.y = b.y0 + Math.sin(b.t * 3.1 + b.ph) * 5 + Math.sin(b.t * 8.7) * 1.5;
+      }
+      this.bats = this.bats.filter((b) => b.x > -this.extL - 30 && b.x < W + this.extR + 30);
     }
 
     // Les petits gestes du couple.
@@ -2378,6 +2524,7 @@
         }
       }
       if (look.birds) this.flock.draw(g);
+      for (const b of this.bats) g.drawImage(this.batImgs[Math.floor(b.t / 0.08) % 2], Math.round(b.x) - 3, Math.round(b.y) - 2);
 
       // 2. Toits voisins, cheminée, poteau ; le chat sur un faîtage ; la fumée.
       g.drawImage(this.mid, wx0, 0);

@@ -84,8 +84,10 @@
     automne: { tod: 'dusk', season: 'autumn', wet: false, fx: 'leaves' },
   };
 
-  // L'effet météo modifie l'ambiance de la variante.
-  function resolveLook(variant, effect) {
+  // L'effet météo modifie l'ambiance de la variante. night (météo en direct : il fait nuit)
+  // fait passer toute ambiance de jour, de crépuscule ou de soir en vraie nuit, en gardant
+  // les conséquences de la météo (rue mouillée, neige posée, cerisiers, feuilles rousses).
+  function resolveLook(variant, effect, night = false) {
     const v = VARIANTS[variant] || VARIANTS.nuit;
     const lk = { variant, tod: v.tod, season: v.season, wet: v.wet, overcast: v.wet, storm: false, starfall: false, fx: null };
     switch (effect) {
@@ -128,6 +130,8 @@
       default:
         lk.fx = v.fx; // particules propres à la scène seulement sans effet météo (pas de double météo)
     }
+    // Version nuit : seulement si l'ambiance n'est pas déjà nocturne (sinon rien ne change).
+    if (night && lk.tod !== 'night') lk.tod = 'night';
     lk.snow = lk.season === 'winter' && !lk.wet;
     lk.lightsOn = lk.tod !== 'day';
     lk.night = lk.tod === 'night';
@@ -413,6 +417,7 @@
       this.extMode = false;
       this.t = 0;
       this.effect = null;
+      this.night = false; // version nuit (météo en direct, après le coucher du soleil)
       this.look = null;
       this.bg = null;
       this.layout();
@@ -550,9 +555,10 @@
     }
 
     /* ================= Peinture du décor ================= */
-    build(effect) {
+    build(effect, night = this.night) {
       this.effect = effect;
-      const lk = (this.look = resolveLook(this.variant, effect));
+      this.night = night;
+      const lk = (this.look = resolveLook(this.variant, effect, night));
       const { W, H, L } = this;
       this.windows = [];
       this.ledges = [];
@@ -3491,7 +3497,9 @@
 
     update(dt, ctx) {
       const eff = (ctx && ctx.effect) || 'none';
-      if (!this.bg || eff !== this.effect) this.build(eff);
+      // Sans « night » dans le contexte (caméra d'ouverture), on garde l'état courant.
+      const night = ctx && 'night' in ctx ? !!ctx.night : this.night;
+      if (!this.bg || eff !== this.effect || night !== this.night) this.build(eff, night);
       const lk = this.look;
       const { W, L } = this;
       this.t += dt;

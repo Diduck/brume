@@ -155,6 +155,22 @@
     },
   };
 
+  // Versions nuit (météo en direct, il fait nuit) des ambiances qui ne sont pas déjà
+  // nocturnes : la branche de cerisier et l'arbre d'automne restent, sous un ciel de nuit
+  // (lune, étoiles), éclairés par la lune. nightFront : teinte de nuit du premier plan.
+  const MOODS_NUIT = {
+    sakura: {
+      sky: ['#090b28', '#161844', '#2c2658', '#4c3670'], moon: 'full', moonX: 0.34, moonY: 0.24, stars: 70, clouds: 0.2,
+      cloud: ['#1e1e4c', '#30305e'], far: '#17163a', bld: ['#141329', '#1a1834', '#1f1b3b', '#171a33'], edge: '#4e4a7e', win: 0.45, branch: true, shooting: true,
+      nightFront: ['#262a62', 0.36],
+    },
+    leaves: {
+      sky: ['#0a0a24', '#17163e', '#2a2050', '#46304e'], moon: 'full', moonX: 0.74, moonY: 0.2, stars: 64, clouds: 0.3,
+      cloud: ['#201c46', '#322c58'], far: '#1a1534', bld: ['#170f22', '#1c1328', '#21162c', '#180f24'], edge: '#4a3c66', win: 0.5, tree: true, shooting: true,
+      nightFront: ['#1c1c48', 0.36],
+    },
+  };
+
   /* ================= Sprites propres à la scène ================= */
   // Chat qui s'étire (même palette que le chat roux partagé), tête à gauche.
   const CAT_PAL = { o: '#e2893c', O: '#a85a26', l: '#f2b67c', e: '#3a2014', n: '#e58a8a', g: '#9adf6a' };
@@ -229,6 +245,7 @@
       this.fast = X.fastTest();
       this.t = 0;
       this.eff = null;
+      this.night = false; // version nuit (météo en direct, après le coucher du soleil)
       // Le décor est peint au premier update (selon la météo), ou au premier draw à défaut.
 
       // Ce qui vit dans la scène.
@@ -264,9 +281,10 @@
     }
 
     // (Re)peint tout le décor pour une météo donnée.
-    build(eff) {
+    build(eff, night = this.night) {
       this.eff = eff;
-      this.mood = MOODS[eff] || MOODS.none;
+      this.night = night;
+      this.mood = (night && MOODS_NUIT[eff]) || MOODS[eff] || MOODS.none;
       this.paintOutside();
       this.inside = this.paintInside();
       this.halo = this.paintHalo();
@@ -486,6 +504,16 @@
       const lit = this.wins.filter((w) => w.lit);
       this.silhouette = { win: lit[Math.floor(R() * lit.length)] || null, x: 0, dir: 1 };
       if (this.ext) this.paintOutsideWorld(far, near, front, spans);
+      // La nuit, le premier plan (fleurs, feuillage) passe sous la lumière bleutée de la lune.
+      if (m.nightFront) {
+        const [tc, tk] = m.nightFront;
+        const nc = C(tc);
+        const d = front.data;
+        for (let i = 0; i < d.length; i += 4) {
+          if (!d[i + 3]) continue;
+          for (let c = 0; c < 3; c++) d[i + c] = Math.round(d[i + c] + (nc[c] - d[i + c]) * tk);
+        }
+      }
 
       this.outFar = far.toCanvas();
       this.outNear = near.toCanvas();
@@ -2398,7 +2426,9 @@
     update(dt, ctx) {
       const { L } = this;
       const eff = (ctx && ctx.effect) || 'none';
-      if (eff !== this.eff) this.build(eff);
+      // Sans « night » dans le contexte (caméra d'ouverture), on garde l'état courant.
+      const night = ctx && 'night' in ctx ? !!ctx.night : this.night;
+      if (eff !== this.eff || night !== this.night) this.build(eff, night);
       const m = this.mood;
       this.t += dt;
 

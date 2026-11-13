@@ -13,6 +13,7 @@ const DEFAULTS = Object.freeze({
   accumulate: true,        // la neige / les feuilles se posent sur les fenêtres
   snowballs: true,         // boules de neige et bonshommes
   realWeather: false,
+  night: false,            // météo en direct : il fait nuit chez toi (les scènes passent en version nuit)
   pauseOnBattery: false,
   stats: false,
   welcomeSeen: false,

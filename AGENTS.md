@@ -27,6 +27,10 @@ entièrement par le code. Lis-le en entier avant d'écrire la première ligne.
   plutôt ses **conséquences** (neige sur les toits, sol mouillé et reflets, lac agité, ciel
   d'orage, arbres en fleurs, feuilles rousses, lucioles, étoiles filantes). Regarde
   `rooftops.js` pour l'équilibre.
+- **Jour ou nuit** : avec la « Météo actuelle », Brume dit aussi à la scène s'il fait nuit
+  chez l'utilisateur (`night`). Chaque temps a alors sa **version nuit** : il pleut, mais
+  de nuit (ciel sombre, fenêtres et lampadaires allumés, reflets) ; il a neigé, mais la
+  lune éclaire la neige… `fireflies` et `starfall` sont déjà des nuits.
 
 ## 2. Le contrat
 
@@ -42,6 +46,11 @@ entièrement par le code. Lis-le en entier avant d'écrire la première ligne.
     none: { /* … */ }, snow: { /* … */ }, rain: { /* … */ }, storm: { /* … */ },
     sakura: { /* … */ }, leaves: { /* … */ }, fireflies: { /* … */ }, starfall: { /* … */ },
   };
+  // Version nuit d'un temps : ses conséquences (sol mouillé, neige posée, nuages…) avec le
+  // ciel et la lumière d'une nuit. fireflies et starfall sont déjà des nuits.
+  const nightLook = (effect) =>
+    effect === 'fireflies' || effect === 'starfall' ? LOOKS[effect]
+      : { ...LOOKS[effect], sky: LOOKS.starfall.sky, amb: LOOKS.starfall.amb, birds: false /* … */ };
 
   class Montagne {
     // W, H : taille logique. opts.ext = { left, right } : monde élargi (voir § 3).
@@ -53,13 +62,16 @@ entièrement par le code. Lis-le en entier avant d'écrire la première ligne.
       this.extR = Math.max(0, Math.round(ext.right || 0));
       this.t = 0;
       this.effect = null;
+      this.night = false;
       this.build('none');
     }
 
     // Repeint les calques pour un temps donné (appelé quand le temps change).
-    build(effect) {
+    // night : version nuit de ce temps (météo en direct, la nuit).
+    build(effect, night = false) {
       this.effect = effect;
-      this.look = LOOKS[effect] || LOOKS.none;
+      this.night = night;
+      this.look = night ? nightLook(effect) : LOOKS[effect] || LOOKS.none;
       this.back = this.paintBack().toCanvas(); // ciel, montagnes
       this.mid = this.paintMid().toCanvas();   // plan moyen
       this.fore = this.paintFore().toCanvas(); // premier plan
@@ -67,7 +79,9 @@ entièrement par le code. Lis-le en entier avant d'écrire la première ligne.
 
     update(dt, ctx) {
       const eff = (ctx && ctx.effect) || 'none';
-      if (eff !== this.effect) this.build(eff);
+      // night absent (caméra d'ouverture) : on garde l'état courant.
+      const night = ctx && 'night' in ctx ? !!ctx.night : this.night;
+      if (eff !== this.effect || night !== this.night) this.build(eff, night);
       this.t += dt;
       // faire avancer ce qui bouge…
     }
@@ -143,10 +157,15 @@ VS Code définit `ELECTRON_RUN_AS_NODE` : toujours lancer Electron avec `env -u 
 #    et une image du monde élargi entier est écrite dans le dossier de sortie.
 env -u ELECTRON_RUN_AS_NODE npx electron tools/ext-check.js montagne none /tmp/brume-ext
 
-# 2. Captures du fond, pour chaque temps (regarde-les vraiment) :
+#    Version nuit d'un temps : suffixe « :nuit » (ex. rain:nuit).
+env -u ELECTRON_RUN_AS_NODE npx electron tools/ext-check.js montagne rain:nuit /tmp/brume-ext
+
+# 2. Captures du fond, pour chaque temps (regarde-les vraiment), de jour puis de nuit :
 for fx in none rain snow storm sakura leaves fireflies starfall; do
   env -u ELECTRON_RUN_AS_NODE npx electron tools/snap.js wallpaper /tmp/montagne-$fx.png \
     "{\"wallpaper\":\"montagne\",\"effect\":\"$fx\"}" 1440 900 3000
+  env -u ELECTRON_RUN_AS_NODE npx electron tools/snap.js wallpaper /tmp/montagne-$fx-nuit.png \
+    "{\"wallpaper\":\"montagne\",\"effect\":\"$fx\",\"night\":true}" 1440 900 3000
 done
 
 # 3. L'animation d'ouverture, à plusieurs instants :
@@ -160,7 +179,7 @@ npm start
 Critères avant de rendre le travail :
 - `diffPixels: 0` partout, et les autres scènes toujours à 0 ;
 - chaque temps est lisible et différent (jour/nuit, neige posée, pluie, orage, printemps,
-  automne) ;
+  automne), et chacun a une vraie version nuit (`night: true`) ;
 - la dernière image de l'ouverture est le fond d'écran ;
 - `draw()` reste léger : pas de `getImageData` ni de repeinture des calques à chaque image ;
 - pas d'erreur dans la console (`[page]` dans la sortie des outils).
