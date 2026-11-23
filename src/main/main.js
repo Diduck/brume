@@ -165,6 +165,9 @@ function transparentWindow(bounds, { panel = true, desktop = false } = {}) {
     fullscreenable: false,
     skipTaskbar: true,
     focusable: false,
+    // Sans ça, macOS « mange » le premier clic sur une fenêtre inactive : attraper une
+    // boule ratait une fois sur deux (le clic servait seulement à activer la couche).
+    acceptFirstMouse: true,
     enableLargerThanScreen: true,
     roundedCorners: false,
     show: false,

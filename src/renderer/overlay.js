@@ -29,8 +29,10 @@
   });
 
   // La souris n'arrive ici que lorsque la fenêtre est « interactive » (sur une boule).
+  // On prend la position exacte du clic : celle envoyée par le processus principal
+  // (relevée toutes les 16 ms) peut avoir un temps de retard sur un geste rapide.
   canvas.addEventListener('mousedown', (e) => {
-    if (e.button === 0) engine.pointerDown();
+    if (e.button === 0) engine.pointerDown(e.clientX, e.clientY);
   });
   window.addEventListener('mouseup', () => engine.pointerUp());
   window.addEventListener('resize', () => engine.resize());

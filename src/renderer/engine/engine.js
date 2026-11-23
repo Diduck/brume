@@ -140,8 +140,12 @@
 
     /* ---------- Souris : attraper et lancer les boules ---------- */
 
-    pointerDown() {
+    pointerDown(x, y) {
       const c = this.cursor;
+      if (x !== undefined) {
+        c.x = x;
+        c.y = y;
+      }
       const b = this.settings.snowballs && this.snowpack.ballAt(c.x, c.y);
       if (b) this.snowpack.grab(b);
     }

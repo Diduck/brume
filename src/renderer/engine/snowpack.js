@@ -329,7 +329,10 @@
         if (b.state === 'held') continue;
         const dx = x - b.x;
         const dy = y - b.y;
-        if (dx * dx + dy * dy > (b.r + 3) * (b.r + 3)) continue;
+        // Une marge autour de la boule : les petites (5 px de rayon) étaient presque
+        // impossibles à viser, surtout quand elles roulent.
+        const reach = Math.max(b.r + 8, 14);
+        if (dx * dx + dy * dy > reach * reach) continue;
         if (this.e.world.covered(x, y, this.orderOf(b))) continue;
         if (!best || b.y < best.y) best = b;
       }
@@ -462,12 +465,16 @@
 
         if (b.state === 'ground') {
           const p = b.pile;
-          if (!b.above && c.active && !this.drag && c.speed > 30 && Math.abs(c.y - b.y) < b.r + 12 && Math.abs(c.x - b.x) < b.r + 22) {
+          if (!b.above && c.active && !this.drag && Math.abs(c.y - b.y) < b.r + 12 && Math.abs(c.x - b.x) < b.r + 22) {
             // Le curseur roule la boule : elle suit sa vitesse, plus un ressort vers lui.
-            const want = c.vx + (c.x - b.x) * 6;
-            b.vx = U.lerp(b.vx, want, Math.min(1, dt * 20));
+            // Sa vitesse ne compte que s'il vient de bouger : quand il s'arrête, la boule
+            // s'arrête sous lui (sinon elle filait sur sa lancée et on ne pouvait plus la
+            // rattraper pour la saisir).
+            const moving = c.speed > 30 && performance.now() - c.t < 30;
+            const want = (moving ? c.vx : 0) + (c.x - b.x) * 6;
+            b.vx = U.lerp(b.vx, want, Math.min(1, dt * (moving ? 20 : 40)));
           }
-          b.vx *= Math.exp(-2.4 * dt);
+          b.vx *= Math.exp(-4 * dt); // la neige freine la boule
           if (b.above) b.vx = 0; // la base d'un bonhomme ne roule pas
           const oldX = b.x;
           b.off += b.vx * dt;
