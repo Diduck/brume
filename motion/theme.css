@@ -1,0 +1,126 @@
+/* ============================================================================
+ * Feuille de l'atelier — police, tokens, cadre, coupe-circuit.
+ *
+ * ⚠ ELLE VIT À LA RACINE DU PROJET, PAS DANS `lib/`, ET C'EST VOULU.
+ * HyperFrames inline les feuilles locales dans la page au moment du rendu. Une
+ * `url('../assets/…')` écrite depuis `lib/` serait alors relue depuis la PAGE,
+ * à la racine, et pointerait hors du projet : la police ne chargerait pas, et
+ * la vidéo sortirait en police de repli sans un mot. À la racine, `assets/…`
+ * est juste dans les deux lectures.
+ * ========================================================================== */
+
+/* Young Serif — la police de titre de l'app (src/renderer/fonts/, licence OFL,
+ * libre). Recopiée dans assets/brume/ par scripts/copie-brume.sh. `block` et
+ * non `swap` : en vidéo, une image retardée vaut mieux qu'une image dans la
+ * mauvaise police. Une seule graisse (400) : ne JAMAIS lui demander du gras,
+ * Chrome en fabriquerait un faux. */
+@font-face {
+  font-family: 'Young Serif';
+  src: url('assets/brume/renderer/fonts/YoungSerif-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: block;
+}
+
+/* Les tokens de l'app, recopiés d'overlay.css et settings.css (même nom, préfixe
+ * --br-). Si l'app change une teinte, la changer ICI aussi. */
+:root {
+  --br-ink: #f2f4f8;
+  --br-ink-soft: rgba(226, 233, 243, 0.76);
+  --br-ink-faint: rgba(206, 216, 232, 0.62);
+  --br-panel: rgba(13, 17, 25, 0.94);
+  --br-card: #0d111a;
+  --br-line: rgba(255, 255, 255, 0.085);
+  --br-raised: rgba(255, 255, 255, 0.035);
+  --br-tile-on: #eef2f8;
+  --br-ink-on: #0d1119;
+  /* Les deux teintes qui guident l'œil : bleu glacier = MÉTÉO, ambre = SCÈNE. */
+  --br-weather: #a9c6ee;
+  --br-weather-soft: rgba(169, 198, 238, 0.14);
+  --br-scene: #f2c27e;
+  --br-scene-soft: rgba(242, 194, 126, 0.13);
+  --br-sans: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', sans-serif;
+  --br-serif: 'Young Serif', ui-serif, 'New York', Georgia, serif;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: #000;
+}
+
+/* La racine d'une composition. */
+.br-cadre {
+  position: relative;
+  width: 1920px;
+  height: 1080px;
+  overflow: hidden;
+  background: var(--br-card);
+  color: var(--br-ink);
+  font-family: var(--br-sans);
+}
+
+.br-cadre :is(h1, h2, h3) {
+  font-family: var(--br-serif);
+  font-weight: 400;
+}
+
+/* Une scène de Brume : pixels NETS. La toile est à la taille logique (384 × 216
+ * à 1080p) ; lib/scene.js pose sa taille affichée (× k, entier). */
+.br-scene {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: block;
+  image-rendering: pixelated;
+}
+
+/* Les icônes de l'app (src/renderer/ui/icons.js) : trait 1,6 sur une grille 24,
+ * bouts arrondis. Une seule épaisseur pour toutes (interdit : épaisseurs
+ * dépareillées). */
+.br-cadre .icon {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Un mot animé doit être une boîte : un `transform` sur un `<span>` en ligne
+ * est IGNORÉ par le navigateur. Sans cette ligne, l'entrée mot par mot devient
+ * un simple fondu. */
+.br-mot {
+  display: inline-block;
+}
+
+/* ============================================================================
+ * ⛔ LE COUPE-CIRCUIT — toute transition et toute animation CSS sont MORTES.
+ *
+ * HyperFrames SAUTE d'un instant à l'autre ; une transition CSS se mesure en
+ * temps réel. Dès qu'une propriété change entre deux images, le navigateur
+ * lancerait une interpolation sans rapport avec l'image demandée — et l'image
+ * 240 ne rendrait pas la même chose seule ou à la suite de la 239. Tout
+ * mouvement passe par la timeline GSAP. (Le panneau de l'app en a partout :
+ * ne pas importer settings.css tel quel.)
+ * ========================================================================== */
+.br-cadre *,
+.br-cadre *::before,
+.br-cadre *::after {
+  transition: none !important;
+  animation: none !important;
+}
+
+/* Élément manquant (moteur non copié…) : visible, nommé, jamais un carré noir. */
+.br-manquant {
+  display: grid;
+  place-items: center;
+  gap: 12px;
+  min-height: 120px;
+  padding: 24px;
+  border: 2px dashed var(--br-scene);
+  border-radius: 12px;
+  color: var(--br-ink);
+  font: 500 22px/1.4 var(--br-sans);
+  text-align: center;
+}

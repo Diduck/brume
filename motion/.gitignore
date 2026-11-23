@@ -1,0 +1,9 @@
+# Se regénère : bash motion/scripts/install.sh
+node_modules/
+assets/vendor/
+assets/brume/
+.hyperframes/
+snapshots/
+renders/
+out/
+.DS_Store

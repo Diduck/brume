@@ -193,3 +193,17 @@ Critères avant de rendre le travail :
   gris, lumières chaudes la nuit.
 - Code et commentaires **en français**, comme le reste du projet. Phrases visibles :
   uniquement dans `strings.js`.
+
+## 7. Faire une vidéo (motion design)
+
+Pour un teaser, une démo ou une vidéo de présentation, utilise le skill `/motion`
+(`.claude/skills/motion/SKILL.md`) et l'atelier `motion/` (HyperFrames + GSAP) : les vraies
+scènes y sont posées en pixels nets et rendues de façon déterministe.
+
+```bash
+bash motion/scripts/install.sh      # une fois
+cd motion && npx hyperframes snapshot --at 0,1.2,2.5,4.9   # images fixes : la boucle de travail
+npm run render -- -o renders/exemple.mp4                   # la vidéo, 60 images/s
+```
+
+Après avoir modifié une scène, `npm run brume` (dans `motion/`) recopie le moteur dans l'atelier.

@@ -1,0 +1,21 @@
+{
+  "name": "brume-motion",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Atelier de motion design de Brume (HyperFrames : HTML + timeline GSAP), avec les vraies scènes pixel art. Hors de l'app Electron. Voir README.md.",
+  "//pasDeType": "PAS de `\"type\": \"module\"` ICI, et c'est voulu : les fichiers `lib/*.js` sont des scripts CLASSIQUES chargés par `<script src>` dans les compositions (HyperFrames veut une timeline enregistrée de façon synchrone, et un `<script type=module>` est différé). Ils s'exportent aussi en CommonJS pour les tests. Les scripts Node, eux, sont en `.mjs`.",
+  "scripts": {
+    "brume": "bash scripts/copie-brume.sh",
+    "lint": "hyperframes lint",
+    "snapshot": "hyperframes snapshot",
+    "render": "hyperframes render --fps 60 --workers 2",
+    "test": "vitest run tests"
+  },
+  "dependencies": {
+    "gsap": "3.15.0",
+    "hyperframes": "0.8.181"
+  },
+  "devDependencies": {
+    "vitest": "^5.0.0"
+  }
+}

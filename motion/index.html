@@ -1,0 +1,245 @@
+<!doctype html>
+<!--
+  ═══════════════════════════════════════════════════════════════════════════
+  la-nuit-tombe — LA composition modèle de l'atelier. Une nouvelle vidéo = une
+  copie de ce fichier à la racine (`<nom>.html`), avec son `data-composition-id`.
+
+  L'idée : on choisit « Neige » dans Brume, et la scène répond. La tuile est la
+  CAUSE, la nuit qui tombe sur les toits est l'EFFET — le produit en une phrase.
+
+  PARTITION (120 bpm, 60 fps — 10 temps = 5 s). Écrite AVANT le code :
+
+  | Temps | Poids         | Sujet                                              | Accompagnement              |
+  |-------|---------------|----------------------------------------------------|-----------------------------|
+  | 0     | respiration   | « Brume » tenu dans sa plaque (c'est la vignette)  | la scène vit : nuages, couple |
+  | 1     | appui         | la plaque s'ouvre, la devise entre mot par mot     | —                           |
+  | 3     | appui         | la tuile « Neige » se pose sous la plaque          | —                           |
+  | 5     | ★ HÉROS ★     | la tuile s'allume (pressée 3 images avant), et la  | —                           |
+  |       |               | nuit tombe avec la neige : trame du ciel aux toits,|                             |
+  |       |               | partie 9 images avant T5, résolue SUR T7           |                             |
+  | 7-9   | respiration   | la nuit tenue (≥ 2 temps, C9)                      | la neige tombe, le couple   |
+
+  Contrastes joués : vitesse (la couleur de la tuile en 6 images, sa géométrie
+  au ressort ; la trame en 1,15 s) ; direction (les mots et la tuile MONTENT,
+  la nuit DESCEND) ; densité (une plaque seule, puis plaque + tuile).
+
+  Rendre au minimum : 0 (vignette), 4,983 (N−1), le héros (~3,0 : milieu de
+  la trame), l'entrée de la devise (~0,7), la respiration (~2,0).
+    npx hyperframes snapshot --at 0,0.7,2,3,4.983 --no-end -o snapshots/index
+  ═══════════════════════════════════════════════════════════════════════════
+-->
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="theme.css" />
+    <style>
+      /* Mise en page de CETTE composition. Couleurs : tokens --br-* uniquement. */
+
+      /* Les « portes » sont des points d'ancrage de taille nulle : ce qu'elles
+         portent est centré dessus quelle que soit sa taille. La plaque est
+         centrée sur le croisement des tiers (1280, 360) : elle s'ouvre vers le
+         haut ET vers le bas, son centre ne bouge pas (C4). Le tiers DROIT,
+         parce que le couple de la scène est au centre-gauche : la tuile, sous
+         la plaque, ne lui tombe pas sur la tête. */
+      [data-composition-id='la-nuit-tombe'] .porte {
+        position: absolute;
+        left: 1280px;
+        width: 0;
+        height: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      [data-composition-id='la-nuit-tombe'] .porte-plaque {
+        top: 360px;
+      }
+      /* La tuile pend sous la plaque : son centre à 360 + 135 (demi-plaque
+         ouverte) + 28 (écart, C3 ≥ 22) + 34 (demi-tuile). */
+      [data-composition-id='la-nuit-tombe'] .porte-tuile {
+        top: 557px;
+      }
+      [data-composition-id='la-nuit-tombe'] .plaque {
+        flex: none;
+        width: max-content;
+        padding: 34px 48px 38px;
+        box-sizing: border-box;
+        border-radius: 26px;
+        background: var(--br-panel);
+        text-align: center;
+      }
+      [data-composition-id='la-nuit-tombe'] .titre {
+        margin: 0;
+        font-size: 124px;
+        line-height: 1;
+        letter-spacing: -0.015em;
+        color: var(--br-ink);
+      }
+      /* La boîte de la devise s'ouvre (hauteur 0 → 74) : la plaque grandit
+         avec elle. Hauteurs en px ÉCRITES, jamais mesurées (une mesure à la
+         construction peut précéder la police). */
+      [data-composition-id='la-nuit-tombe'] .boite-devise {
+        height: 0;
+        overflow: hidden;
+      }
+      [data-composition-id='la-nuit-tombe'] .devise {
+        margin: 14px 0 0;
+        font: 500 42px/60px var(--br-sans);
+        letter-spacing: -0.01em;
+        color: var(--br-ink-soft);
+      }
+      /* La tuile de l'app (settings.css, .tile), agrandie × 2,5 : arrondi 11 →
+         26, icône 18 → 44, texte 12,5 → 32 (42 / 32 = 1,31 : deux rangs, C2). */
+      [data-composition-id='la-nuit-tombe'] .tuile {
+        flex: none;
+        display: flex;
+        align-items: center;
+        gap: 18px;
+        box-sizing: border-box;
+        width: 212px;
+        height: 68px;
+        padding: 0 30px 0 24px;
+        border-radius: 26px;
+        border: 2px solid var(--br-line);
+        background: var(--br-panel);
+        color: var(--br-ink-soft);
+        font: 500 32px/1.25 var(--br-sans);
+        transform-origin: 50% 50%;
+      }
+      [data-composition-id='la-nuit-tombe'] .tuile .icon {
+        width: 44px;
+        height: 44px;
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="la-nuit-tombe"
+      class="br-cadre"
+      data-composition-id="la-nuit-tombe"
+      data-start="0"
+      data-duration="5"
+      data-width="1920"
+      data-height="1080"
+    >
+      <!-- La vraie scène « Sur les toits », de jour sans effet, qui passera à la
+           nuit sous la neige (lib/scene.js, passage tramé). 384 × 216 × 5. -->
+      <canvas class="br-scene" data-scene="toits" data-effect="none" data-graine="7"></canvas>
+
+      <div class="porte porte-plaque">
+        <div class="plaque">
+          <h1 class="titre" data-phrase="appName"></h1>
+          <div class="boite-devise"><p class="devise" data-phrase="tagline"></p></div>
+        </div>
+      </div>
+
+      <div class="porte porte-tuile">
+        <div class="tuile" data-icone="snow"><span data-phrase="effects.snow.label"></span></div>
+      </div>
+
+      <script src="assets/vendor/gsap.min.js"></script>
+      <script src="lib/beatgrid.js"></script>
+      <script src="lib/ressorts.js"></script>
+      <script src="lib/texte.js"></script>
+      <script src="lib/couleurs.js"></script>
+      <!-- Le pont des scènes : lib/scene.js D'ABORD, puis le moteur de Brume dans
+           l'ordre de BR.scene.SCRIPTS (copié par scripts/copie-brume.sh). Bloc à
+           recopier tel quel dans toute composition qui montre une scène. -->
+      <script src="lib/scene.js"></script>
+      <script src="assets/brume/shared/strings.js"></script>
+      <script src="assets/brume/shared/palettes.js"></script>
+      <script src="assets/brume/renderer/pixel/pixel.js"></script>
+      <script src="assets/brume/renderer/pixel/sprites.js"></script>
+      <script src="assets/brume/renderer/pixel/people.js"></script>
+      <script src="assets/brume/renderer/pixel/common.js"></script>
+      <script src="assets/brume/renderer/pixel/cafe.js"></script>
+      <script src="assets/brume/renderer/pixel/city.js"></script>
+      <script src="assets/brume/renderer/pixel/terrace.js"></script>
+      <script src="assets/brume/renderer/pixel/forest.js"></script>
+      <script src="assets/brume/renderer/pixel/sea.js"></script>
+      <script src="assets/brume/renderer/pixel/room.js"></script>
+      <script src="assets/brume/renderer/pixel/drones.js"></script>
+      <script src="assets/brume/renderer/pixel/rooftops.js"></script>
+      <script src="assets/brume/renderer/pixel/annecy.js"></script>
+      <script src="assets/brume/renderer/pixel/planete.js"></script>
+      <script src="assets/brume/renderer/intro-multiplane.js"></script>
+      <script src="assets/brume/renderer/ui/icons.js"></script>
+      <script>
+        (function () {
+          'use strict';
+          if (!window.gsap) {
+            throw new Error('la-nuit-tombe: GSAP absent — lancer `bash motion/scripts/install.sh`.');
+          }
+          var ID = 'la-nuit-tombe';
+          var TEMPS_TOTAL = 10;
+          var racine = document.getElementById(ID);
+          var g = BR.beat.beatGrid(); // 120 bpm, 60 fps
+          var R = BR.ressorts;
+          var S = BR.scene;
+          var C = BR.couleurs;
+
+          var duree = parseFloat(racine.getAttribute('data-duration'));
+          if (Math.abs(duree - g.duree(TEMPS_TOTAL)) > 1e-9) {
+            throw new Error(ID + ': data-duration=' + duree + ' ≠ ' + TEMPS_TOTAL + ' temps (' + g.duree(TEMPS_TOTAL) + ' s).');
+          }
+
+          // 1. Le CONTENU avant la timeline : les phrases viennent de strings.js
+          //    (jamais écrites ici), l'icône d'icons.js. Un tween sur un nœud
+          //    encore vide ne vise rien, en silence.
+          racine.querySelectorAll('[data-phrase]').forEach(function (el) {
+            el.textContent = S.phrase(el.getAttribute('data-phrase'));
+          });
+          racine.querySelectorAll('[data-icone]').forEach(function (el) {
+            el.insertBefore(S.icone(el.getAttribute('data-icone')), el.firstChild);
+          });
+
+          var toile = racine.querySelector('.br-scene');
+          var boite = racine.querySelector('.boite-devise');
+          var devise = racine.querySelector('.devise');
+          var tuile = racine.querySelector('.tuile');
+
+          var tl = gsap.timeline({ paused: true });
+
+          // La scène : même clé, même graine, deux états — le passage tramé va du
+          // crépuscule (none, jour) à la nuit sous la neige (snow, nuit).
+          var nuit = S.passage(toile, { vers: { effet: 'snow', nuit: true }, sens: 'haut' });
+          S.piloter(tl, nuit);
+
+          // Temps 1 — APPUI : la plaque s'ouvre (une masse → ressort), la devise
+          // suit 6 images plus tard (accompagnement décalé, jamais au pic).
+          var ouverture = g.temps(1) - g.f(R.POIDS.appui.avance);
+          R.ressortTo(tl, boite, { height: 74 }, ouverture, 'settle', { height: 0 });
+          BR.texte.entreeMots(tl, devise, { position: ouverture + g.f(6), fps: g.fps, decalage: 4 });
+
+          // Temps 3 — APPUI : la tuile se pose (élan : 3 images de recul, puis
+          // ressort). L'opacité arrive en 10 images, la montée en ~0,8 s.
+          var entreeTuile = R.elan(tl, tuile, 'y', { de: 56, vers: 0, temps: g.temps(3), poids: 'appui', fps: g.fps });
+          tl.fromTo(tuile, { opacity: 0 }, { opacity: 1, duration: g.f(10), ease: 'power2.out' }, entreeTuile.depart);
+
+          // Temps 5 — ★ HÉROS ★ : l'avance du héros (9 images). Anticipation =
+          // la tuile PRESSÉE (0,97, le :active de l'app — 3 %, dans les 2-5 %),
+          // puis relâchée au ressort pendant que sa couleur bascule, PLUS VITE
+          // que sa géométrie (6 images).
+          var heros = g.temps(5) - g.f(R.POIDS.heros.avance);
+          // fromTo partout : départs écrits, jamais lus (voir R.elan).
+          tl.fromTo(tuile, { scale: 1 }, { scale: 0.97, duration: g.f(3), ease: 'sine.out' }, heros - g.f(3));
+          R.ressortTo(tl, tuile, { scale: 1 }, heros, 'snap', { scale: 0.97 });
+          tl.fromTo(
+            tuile,
+            { backgroundColor: C.couleur('panel'), borderColor: C.couleur('line'), color: C.couleur('ink-soft') },
+            { backgroundColor: C.couleur('tile-on'), borderColor: C.couleur('tile-on'), color: C.couleur('ink-on'), duration: g.f(6), ease: 'power2.out' },
+            heros,
+          );
+          // L'effet : la nuit tombe du ciel vers les toits, et la neige s'y pose.
+          // Un fondu → Bézier, pas de ressort. Résolution SUR le temps 7.
+          tl.fromTo(nuit, { p: 0 }, { p: 1, duration: g.temps(7) - heros, ease: 'power1.inOut' }, heros);
+
+          // Temps 7-9 — respiration finale : la scène vit seule, la durée la porte.
+          tl.to({}, { duration: duree }, 0);
+
+          window.__timelines = window.__timelines || {};
+          window.__timelines[ID] = tl;
+        })();
+      </script>
+    </div>
+  </body>
+</html>
